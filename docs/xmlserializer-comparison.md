@@ -14,9 +14,9 @@
 | `[XmlArray]` | ✅ | ✅ | **Complete** |
 | `[XmlArrayItem]` | ✅ | ✅ | **Complete** |
 | **Namespace Support** ||||
-| Element Namespaces | ✅ | ⚠️ | **Partial** (defined but not used) |
-| Root Namespaces | ✅ | ⚠️ | **Partial** (defined but not used) |
-| Namespace Prefixes | ✅ | ❌ | **Missing** |
+| Element Namespaces | ✅ | ✅ | **Complete** |
+| Root Namespaces | ✅ | ✅ | **Complete** |
+| Namespace Prefixes | ✅ | ⚠️ | **Partial** (XNamespace used, prefixes not customizable) |
 | **Type Support** ||||
 | Primitives (int, string, etc.) | ✅ | ✅ | **Complete** |
 | Enums | ✅ | ✅ | **Complete** |
@@ -25,11 +25,11 @@
 | Nullable Types | ✅ | ✅ | **Complete** |
 | Collections (List, Array) | ✅ | ✅ | **Complete** |
 | **Advanced Features** ||||
-| `[XmlInclude]` | ✅ | ❌ | **Missing** |
-| `[XmlEnum]` | ✅ | ❌ | **Missing** |
-| `[XmlType]` | ✅ | ❌ | **Missing** |
-| `[XmlAnyElement]` | ✅ | ❌ | **Missing** |
-| `[XmlAnyAttribute]` | ✅ | ❌ | **Missing** |
+| `[XmlInclude]` | ✅ | ✅ | **Complete** |
+| `[XmlEnum]` | ✅ | ✅ | **Complete** |
+| `[XmlType]` | ✅ | ✅ | **Complete** |
+| `[XmlAnyElement]` | ✅ | ✅ | **Complete** |
+| `[XmlAnyAttribute]` | ✅ | ✅ | **Complete** |
 | `[XmlChoiceIdentifier]` | ✅ | ❌ | **Missing** |
 | **Polymorphism** ||||
 | Type Inheritance | ✅ | ✅ | **Complete** |
@@ -47,24 +47,24 @@
 
 ## Summary
 
-### ✅ Implemented (18 features)
-- All basic XML attributes
+### ✅ Implemented (23 features)
+- All basic XML attributes (`XmlElement`, `XmlAttribute`, `XmlIgnore`, `XmlRoot`, `XmlText`, `XmlArray`, `XmlArrayItem`)
 - All primitive and standard types
 - Inheritance and polymorphism
 - Custom DateTime formatting
 - Collection handling
 - Property overriding
+- **XML Namespaces** (element and root namespaces)
+- **`[XmlInclude]`** for declarative polymorphism
+- **`[XmlEnum]`** for custom enum values
+- **`[XmlType]`** for type name customization
+- **`[XmlAnyElement]`** for capturing unknown elements
+- **`[XmlAnyAttribute]`** for capturing unknown attributes
 
-### ⚠️ Partially Implemented (2 features)
-- XML Namespaces (attributes exist, code generation incomplete)
-- Namespace Prefixes
+### ⚠️ Partially Implemented (1 feature)
+- Namespace Prefixes (XNamespace used, but prefix customization not available)
 
-### ❌ Not Implemented (9 features)
-- `[XmlInclude]` for declarative polymorphism
-- `[XmlEnum]` for custom enum values
-- `[XmlType]` for type name customization
-- `[XmlAnyElement]` for unknown elements
-- `[XmlAnyAttribute]` for unknown attributes  
+### ❌ Not Implemented (4 features)
 - `[XmlChoiceIdentifier]` for choice patterns
 - `ShouldSerializeXXX()` methods
 - `XXXSpecified` pattern
@@ -82,13 +82,14 @@
 
 For most use cases, XmlSourceGenerator is a **drop-in replacement** for XmlSerializer. The main compatibility issues are:
 
-1. **Namespaces**: Currently not fully implemented (in progress)
-2. **Advanced Attributes**: `XmlInclude`, `XmlEnum`, etc. need alternatives
-3. **Conditional Serialization**: `ShouldSerialize` pattern not supported
+1. **Namespace Prefixes**: Custom prefix names not supported (uses XNamespace with default prefixes)
+2. **Conditional Serialization**: `ShouldSerialize` pattern and `[DefaultValue]` not supported
+3. **Choice Patterns**: `[XmlChoiceIdentifier]` not implemented
 
 ### Recommended Approach
 
-- ✅ Use for new code
-- ✅ Use for simple to moderate XML scenarios
+- ✅ Use for new code with confidence
+- ✅ Use for simple to complex XML scenarios (now includes polymorphism and namespaces)
+- ✅ Excellent for AOT and trimming scenarios
 - ⚠️ Test thoroughly when migrating from XmlSerializer
-- ❌ Avoid for code heavily using `XmlInclude` or `XmlAnyElement` (until implemented)
+- ⚠️ Manual handling needed for conditional serialization patterns

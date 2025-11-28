@@ -9,11 +9,13 @@ High-performance XML serialization via C# source generation with full `XmlSerial
 ## Features
 
 ✅ **Zero Runtime Overhead** - Code generated at compile time  
-✅ **XmlSerializer Parity** - All attributes and behaviors supported  
+✅ **XmlSerializer Parity** - 23/28 features supported (82% complete)  
 ✅ **Type Safety** - Compile-time errors instead of runtime exceptions  
 ✅ **IntelliSense Support** - Full IDE integration  
-✅ **Inheritance & Polymorphism** - Virtual/override property support  
-✅ **Advanced Types** - Enums, DateTime with formats, Nullable, Collections  
+✅ **Polymorphism** - `[XmlInclude]` and inheritance support  
+✅ **Advanced Features** - `[XmlEnum]`, `[XmlType]`, `[XmlAnyElement]`, `[XmlAnyAttribute]`  
+✅ **XML Namespaces** - Full element and root namespace support  
+✅ **Collections** - Lists, arrays with customizable element names  
 
 ## Quick Start
 

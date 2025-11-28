@@ -32,31 +32,41 @@ namespace SourceGeneratorUtils
             var settings = new XmlReaderSettings { Async = true };
             using (var reader = XmlReader.Create(stream, settings))
             {
+                // Skip to first content
                 reader.MoveToContent();
-
-                while (reader.Read())
+                
+                // Read through all elements
+                while (!reader.EOF)
                 {
-                    // Look for the start element matching our target type
                     if (reader.NodeType == XmlNodeType.Element && reader.Name == targetName)
                     {
-                        // 1. Materialize one node
-                        XElement el = (XElement)XNode.ReadFrom(reader);
-
-                        // 2. Map to T
-                        T item = new T();
-
-                        if (item is IXmlStreamable streamable)
+                        // Use ReadSubtree for cleaner element extraction
+                        using (XmlReader subtree = reader.ReadSubtree())
                         {
-                            // Fast path: Manual mapping
-                            streamable.ReadFromXml(el, options);
-                        }
-                        else
-                        {
-                            // Slow path: Reflection mapping
-                            MapFromXElement(item, el);
-                        }
+                            subtree.MoveToContent();
+                            XElement el = XElement.Load(subtree);
 
-                        yield return item;
+                            // Map to T
+                            T item = new T();
+
+                            if (item is IXmlStreamable streamable)
+                            {
+                                streamable.ReadFromXml(el, options);
+                            }
+                            else
+                            {
+                                MapFromXElement(item, el);
+                            }
+
+                            yield return item;
+                        }
+                        
+                        // ReadSubtree positions reader AT the element, so we need to skip it
+                        reader.Read(); // Move past the element we just processed
+                    }
+                    else
+                    {
+                        reader.Read(); // Move to next node
                     }
                 }
             }

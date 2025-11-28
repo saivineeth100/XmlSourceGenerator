@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using Xunit;
@@ -75,10 +75,12 @@ namespace SourceGeneratorUtils.Tests.Integration
                 new ManualUser { UserId = 1, Username = "user1" },
                 new ManualUser { UserId = 2, Username = "user2" }
             };
-
+           
             using var stream = new MemoryStream();
             GenericXmlStreamer.WriteDataToStreamAsync(stream, users).Wait();
-
+            // Test Writtten XML
+            string xml = System.Text.Encoding.UTF8.GetString(stream.ToArray());
+            Assert.Contains("﻿<?xml version=\"1.0\" encoding=\"utf-8\"?><ArrayOfItems><ManualUser><UserId>1</UserId><Username>user1</Username></ManualUser><ManualUser><UserId>2</UserId><Username>user2</Username></ManualUser></ArrayOfItems>", xml);
             stream.Position = 0;
             var restored = GenericXmlStreamer.ReadDataFromStream<ManualUser>(stream).ToList();
 

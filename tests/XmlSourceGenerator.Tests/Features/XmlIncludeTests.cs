@@ -5,7 +5,7 @@ using SourceGeneratorUtils;
 
 namespace SourceGeneratorUtils.Tests.Integration.Features
 {
-    public class XmlIncludeTests
+    public partial class XmlIncludeTests
     {
         [XmlInclude(typeof(Dog))]
         [XmlInclude(typeof(Cat))]
@@ -35,7 +35,7 @@ namespace SourceGeneratorUtils.Tests.Integration.Features
 
             Assert.Equal("Dog", xml.Name.LocalName);
             Assert.Equal("Buddy", xml.Element("Name")?.Value);
-            Assert.Equal("True", xml.Element("CanBark")?.Value);
+            Assert.Equal("true", xml.Element("CanBark")?.Value);
         }
 
         [Fact]
@@ -55,7 +55,7 @@ namespace SourceGeneratorUtils.Tests.Integration.Features
             var xml = XElement.Parse(@"
                 <Dog>
                     <Name>Buddy</Name>
-                    <CanBark>True</CanBark>
+                    <CanBark>true</CanBark>
                 </Dog>");
 
             var dog = new Dog();

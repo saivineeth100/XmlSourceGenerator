@@ -5,7 +5,7 @@ using SourceGeneratorUtils;
 
 namespace SourceGeneratorUtils.Tests.Integration.Features
 {
-    public class XmlEnumTests
+    public partial class XmlEnumTests
     {
         public enum Status
         {

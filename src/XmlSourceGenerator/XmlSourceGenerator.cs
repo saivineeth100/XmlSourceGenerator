@@ -84,7 +84,7 @@ namespace SourceGeneratorUtils
 
                 foreach (var parent in parents)
                 {
-                    sb.Unindent();
+                    sb.DecrementIndent();
                     sb.AppendLine("}");
                 }
             }
