@@ -1,0 +1,46 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Package Metadata -->
+    <Authors>Saivineeth</Authors>
+    <Company>Saivineeth</Company>
+    <Product>XmlSourceGenerator</Product>
+    <Description>High-performance XML serialization via source generation with XmlSerializer feature parity</Description>
+    <Copyright>Copyright © $(Authors) 2025</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/saivineeth/XmlSourceGenerator</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/saivineeth/XmlSourceGenerator</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>xml;serialization;source-generator;roslyn;performance</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    
+    <!-- Versioning -->
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    
+    <!-- Build Settings -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    
+    <!-- Package Settings -->
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    
+    <!-- SourceLink -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)README.md')" />
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)icon.png')" />
+  </ItemGroup>
+
+
+</Project>

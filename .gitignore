@@ -1,0 +1,32 @@
+## Build artifacts
+bin/
+obj/
+*.user
+*.suo
+*.cache
+.vs/
+
+## Test results
+TestResults/
+coverage/
+*.trx
+*.coverage
+
+## NuGet
+*.nupkg
+*.snupkg
+packages/
+
+## IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Misc
+*.log
+artifacts/
