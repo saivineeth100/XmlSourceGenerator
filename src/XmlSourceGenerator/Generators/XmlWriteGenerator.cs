@@ -25,6 +25,7 @@ namespace SourceGeneratorUtils
             
             using (_sb.Indent())
             {
+
                 // Root element name
                 string rootName = classSymbol.Name;
                 string? rootNs = XmlNamespaceHelper.GetNamespace(classSymbol);

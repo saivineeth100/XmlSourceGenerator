@@ -75,6 +75,64 @@ namespace SourceGeneratorUtils
                 
                 using (sb.Indent())
                 {
+                    // Generate nested XmlTypeInfo class
+                    sb.AppendLine("private static class XmlTypeInfo");
+                    sb.AppendLine("{");
+                    using (sb.Indent())
+                    {
+                        sb.AppendLine($"public static readonly Type Type = typeof({classSymbol.ToDisplayString()});");
+                        
+                        var properties = PropertyHelpers.GetAllProperties(classSymbol);
+                        
+                        // Generate property name constants
+                        foreach (var prop in properties)
+                        {
+                            if (prop.IsStatic) continue;
+                            sb.AppendLine($"public const string PropName_{prop.Name} = nameof({classSymbol.ToDisplayString()}.{prop.Name});");
+                        }
+                        
+                        // Generate default XML name constants (eliminates string literals in generated code)
+                        foreach (var prop in properties)
+                        {
+                            if (prop.IsStatic) continue;
+                            sb.AppendLine($"public const string DefaultXmlName_{prop.Name} = \"{prop.Name}\";");
+                        }
+                        
+                        // Generate namespace constants
+                        var uniqueNamespaces = new System.Collections.Generic.HashSet<string>();
+                        
+                        // Check root namespace
+                        string? rootNs = XmlNamespaceHelper.GetNamespace(classSymbol);
+                        if (rootNs != null)
+                        {
+                            uniqueNamespaces.Add(rootNs);
+                        }
+                        
+                        // Check property namespaces
+                        foreach (var prop in properties)
+                        {
+                            if (prop.IsStatic) continue;
+                            string? propNs = XmlNamespaceHelper.GetNamespace(prop);
+                            if (propNs != null)
+                            {
+                                uniqueNamespaces.Add(propNs);
+                            }
+                        }
+                        
+                        // Generate namespace fields
+                        int nsIndex = 0;
+                        var namespaceMap = new System.Collections.Generic.Dictionary<string, string>();
+                        foreach (var ns in uniqueNamespaces)
+                        {
+                            string fieldName = $"Namespace{nsIndex}";
+                            namespaceMap[ns] = fieldName;
+                            sb.AppendLine($"public static readonly XNamespace {fieldName} = XNamespace.Get(\"{ns}\");");
+                            nsIndex++;
+                        }
+                    }
+                    sb.AppendLine("}");
+                    sb.AppendLine();
+
                     new XmlReadGenerator(sb, compilation).GenerateReadMethod(classSymbol);
                     sb.AppendLine();
                     new XmlWriteGenerator(sb, compilation).GenerateWriteMethod(classSymbol);

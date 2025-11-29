@@ -115,23 +115,67 @@ namespace SourceGeneratorUtils
         // ---------------------------------------------------------
         // REFLECTION HELPERS (The "Dynamic" Part)
         // ---------------------------------------------------------
+        
+        // Metadata classes for caching type information
+        private class XmlPropertyMetadata
+        {
+            public PropertyInfo Property { get; }
+            public string Name { get; }
+            public Type PropertyType { get; }
+            public Type UnderlyingType { get; } // For nullable types
+            public bool CanRead { get; }
+            public bool CanWrite { get; }
+
+            public XmlPropertyMetadata(PropertyInfo property)
+            {
+                Property = property;
+                Name = property.Name;
+                PropertyType = property.PropertyType;
+                UnderlyingType = Nullable.GetUnderlyingType(PropertyType) ?? PropertyType;
+                CanRead = property.CanRead;
+                CanWrite = property.CanWrite;
+            }
+        }
+
+        private class XmlTypeMetadata
+        {
+            public Type Type { get; }
+            public XmlPropertyMetadata[] Properties { get; }
+
+            public XmlTypeMetadata(Type type)
+            {
+                Type = type;
+                Properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Select(p => new XmlPropertyMetadata(p))
+                    .ToArray();
+            }
+        }
+
+        // Cache for type metadata to avoid repeated reflection
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, XmlTypeMetadata> _metadataCache 
+            = new System.Collections.Concurrent.ConcurrentDictionary<Type, XmlTypeMetadata>();
+
+        private static XmlTypeMetadata GetCachedMetadata(Type type)
+        {
+            return _metadataCache.GetOrAdd(type, t => new XmlTypeMetadata(t));
+        }
+
         private static void MapFromXElement<T>(T item, XElement el)
         {
-            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                                      .Where(p => p.CanWrite);
+            var metadata = GetCachedMetadata(typeof(T));
 
-            foreach (var prop in properties)
+            foreach (var propMeta in metadata.Properties.Where(p => p.CanWrite))
             {
                 // Try Element first, then Attribute
-                var xmlValue = (string)el.Element(prop.Name) ?? (string)el.Attribute(prop.Name);
+                var xmlValue = (string)el.Element(propMeta.Name) ?? (string)el.Attribute(propMeta.Name);
 
                 if (xmlValue != null)
                 {
                     try
                     {
-                        // Basic type conversion
-                        object value = Convert.ChangeType(xmlValue, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
-                        prop.SetValue(item, value);
+                        // Use pre-calculated UnderlyingType
+                        object value = Convert.ChangeType(xmlValue, propMeta.UnderlyingType);
+                        propMeta.Property.SetValue(item, value);
                     }
                     catch
                     {
@@ -144,17 +188,16 @@ namespace SourceGeneratorUtils
         private static XElement MapToXElement<T>(T item, string elementName)
         {
             var el = new XElement(elementName);
-            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                                      .Where(p => p.CanRead);
+            var metadata = GetCachedMetadata(typeof(T));
 
-            foreach (var prop in properties)
+            foreach (var propMeta in metadata.Properties.Where(p => p.CanRead))
             {
-                var value = prop.GetValue(item);
+                var value = propMeta.Property.GetValue(item);
                 if (value != null)
                 {
                     // Simple heuristic: Simple types -> Attributes, Complex -> Elements?
                     // For now, let's default everything to Elements for safety
-                    el.Add(new XElement(prop.Name, value));
+                    el.Add(new XElement(propMeta.Name, value));
                 }
             }
             return el;

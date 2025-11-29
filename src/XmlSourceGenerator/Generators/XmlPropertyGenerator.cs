@@ -60,7 +60,7 @@ namespace SourceGeneratorUtils
                 }
                 else
                 {
-                    _sb.AppendLine($"var {xmlNameVar} = options?.GetXmlName(typeof({classSymbol.ToDisplayString()}), \"{propName}\") ?? \"{propName}\";");
+                    _sb.AppendLine($"var {xmlNameVar} = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_{propName}) ?? XmlTypeInfo.DefaultXmlName_{propName};");
                 }
 
                 if (ns != null)
@@ -141,7 +141,7 @@ namespace SourceGeneratorUtils
                 }
                 else
                 {
-                    _sb.AppendLine($"var {xmlNameVar} = options?.GetXmlName(typeof({classSymbol.ToDisplayString()}), \"{propName}\") ?? \"{propName}\";");
+                    _sb.AppendLine($"var {xmlNameVar} = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_{propName}) ?? XmlTypeInfo.DefaultXmlName_{propName};");
                 }
 
                 string elementCreation;

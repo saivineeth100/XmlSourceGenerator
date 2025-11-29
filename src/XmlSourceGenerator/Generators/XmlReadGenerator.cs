@@ -24,6 +24,7 @@ namespace SourceGeneratorUtils
             
             using (_sb.Indent())
             {
+
                 var properties = PropertyHelpers.GetAllProperties(classSymbol);
                 var knownElements = new System.Collections.Generic.HashSet<string>();
                 var knownAttributes = new System.Collections.Generic.HashSet<string>();
@@ -173,11 +174,6 @@ namespace SourceGeneratorUtils
                         _sb.AppendLine($"case \"{mapping.XmlName}\":");
                         using (_sb.Indent())
                         {
-                            // Check namespace if needed?
-                            // For now, we assume LocalName match is sufficient or we should check namespace if provided in attribute?
-                            // XmlInclude doesn't specify namespace usually, it's on the target type.
-                            // But we should probably respect it if we can.
-                            
                             string varName = $"item{index}";
                             string streamableVarName = $"streamable{index}";
                             _sb.AppendLine($"var {varName} = new {mapping.TargetType.ToDisplayString()}();");

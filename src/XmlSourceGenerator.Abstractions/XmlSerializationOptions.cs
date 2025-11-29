@@ -36,6 +36,13 @@ namespace SourceGeneratorUtils
         /// </summary>
         public string GetXmlName(Type type, string propertyName)
         {
+            // Fast path: if no overrides and no policy, return original name
+            // This avoids tuple allocation and dictionary lookup for the common case
+            if (PropertyOverrides.Count == 0 && PropertyNamingPolicy == null)
+            {
+                return propertyName;
+            }
+
             if (PropertyOverrides.TryGetValue((type, propertyName), out string overrideName))
             {
                 return overrideName;
