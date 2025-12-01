@@ -1,6 +1,4 @@
-using System;
-
-namespace SourceGeneratorUtils
+namespace XmlSourceGenerator.Abstractions
 {
     /// <summary>
     /// Marks a class for automatic IXmlStreamable implementation generation.
@@ -129,6 +127,75 @@ namespace SourceGeneratorUtils
         public XmlArrayItemAttribute(string elementName)
         {
             ElementName = elementName;
+        }
+    }
+
+    /// <summary>
+    /// Serializes a property as a sequence of XML elements that do not map to a specific member.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
+    public class XmlAnyElementAttribute : Attribute
+    {
+        public string? Name { get; set; }
+        public string? Namespace { get; set; }
+        public int Order { get; set; }
+        
+        public XmlAnyElementAttribute(string? name = null)
+        {
+            Name = name;
+        }
+    }
+
+    /// <summary>
+    /// Serializes a property as a sequence of XML attributes that do not map to a specific member.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
+    public class XmlAnyAttributeAttribute : Attribute
+    {
+    }
+
+    /// <summary>
+    /// Controls how an enum member is serialized.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+    public class XmlEnumAttribute : Attribute
+    {
+        public string? Name { get; set; }
+
+        public XmlEnumAttribute(string? name = null)
+        {
+            Name = name;
+        }
+    }
+
+    /// <summary>
+    /// Allows the serializer to recognize a type when it serializes an object.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Method, Inherited = true, AllowMultiple = true)]
+    public class XmlIncludeAttribute : Attribute
+    {
+        public Type Type { get; }
+
+        public XmlIncludeAttribute(Type type)
+        {
+            Type = type;
+        }
+    }
+
+    /// <summary>
+    /// Controls the XML schema that is generated when the attribute target is serialized.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum | AttributeTargets.Interface, Inherited = false, AllowMultiple = false)]
+    public class XmlTypeAttribute : Attribute
+    {
+        public string? TypeName { get; set; }
+        public string? Namespace { get; set; }
+        public bool AnonymousType { get; set; }
+        public bool IncludeInSchema { get; set; }
+
+        public XmlTypeAttribute(string? typeName = null)
+        {
+            TypeName = typeName;
         }
     }
 }

@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 using Xunit;
-using SourceGeneratorUtils;
+using XmlSourceGenerator;
+using XmlSourceGenerator.Abstractions;
 
-namespace SourceGeneratorUtils.Tests.Integration.Features
+namespace XmlSourceGenerator.Tests.Integration.Features
 {
     public partial class XmlAnyTests
     {

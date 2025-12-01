@@ -1,7 +1,7 @@
-using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
+using XmlSourceGenerator.Helpers;
 
-namespace SourceGeneratorUtils
+namespace XmlSourceGenerator.Generators
 {
     /// <summary>
     /// Generates ReadFromXml method implementation.

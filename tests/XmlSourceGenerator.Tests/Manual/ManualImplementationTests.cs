@@ -1,10 +1,11 @@
-﻿using System.IO;
+using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using Xunit;
-using SourceGeneratorUtils;
+using XmlSourceGenerator.Abstractions;
+using XmlSourceGenerator.Abstractions;
 
-namespace SourceGeneratorUtils.Tests.Integration
+namespace XmlSourceGenerator.Tests.Integration
 {
     /// <summary>
     /// Manual implementation of IXmlStreamable without using the generator.

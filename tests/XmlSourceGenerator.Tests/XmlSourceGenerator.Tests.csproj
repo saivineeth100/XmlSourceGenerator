@@ -23,6 +23,7 @@
   <ItemGroup>
     <!-- Reference generator as both analyzer and regular reference -->
     <ProjectReference Include="..\..\src\XmlSourceGenerator\XmlSourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
+    <ProjectReference Include="..\..\src\XmlSourceGenerator.Abstractions\XmlSourceGenerator.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

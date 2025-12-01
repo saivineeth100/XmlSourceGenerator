@@ -1,7 +1,6 @@
-using System;
 using System.Text;
 
-namespace SourceGeneratorUtils
+namespace XmlSourceGenerator.Abstractions
 {
     /// <summary>
     /// Base class for naming policies used to convert property names to XML element names.

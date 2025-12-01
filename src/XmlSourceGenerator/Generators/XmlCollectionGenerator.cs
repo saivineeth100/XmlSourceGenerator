@@ -1,7 +1,7 @@
-using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
+using XmlSourceGenerator.Helpers;
 
-namespace SourceGeneratorUtils
+namespace XmlSourceGenerator.Generators
 {
     /// <summary>
     /// Generates collection read/write code.
@@ -77,27 +77,48 @@ namespace SourceGeneratorUtils
             _sb.AppendLine("{");
             using (_sb.Indent())
             {
-                if (itemXmlName != null)
+                if (info.IsPolymorphic)
                 {
-                    _sb.AppendLine($"if (child.Name.LocalName != \"{itemXmlName}\") continue;");
-                    // Optionally check namespace here too if strict
-                }
-
-                string itemTypeName = itemType.ToDisplayString();
-                bool isItemPrimitive = PropertyHelpers.IsPrimitive(itemType);
-                
-                if (isItemPrimitive)
-                {
-                    if (itemType.SpecialType == SpecialType.System_String)
-                        _sb.AppendLine($"{info.Name}.Add(child.Value);");
-                    else
-                        _sb.AppendLine($"{info.Name}.Add(({itemTypeName})child);");
+                    bool first = true;
+                    foreach (var mapping in info.PolymorphicMappings)
+                    {
+                        string elsePrefix = first ? "" : "else ";
+                        _sb.AppendLine($"{elsePrefix}if (child.Name.LocalName == \"{mapping.XmlName}\")");
+                        _sb.AppendLine("{");
+                        using (_sb.Indent())
+                        {
+                            string targetTypeName = mapping.TargetType.ToDisplayString();
+                            _sb.AppendLine($"var item = new {targetTypeName}();");
+                            _sb.AppendLine("if (item is IXmlStreamable streamable) streamable.ReadFromXml(child, options);");
+                            _sb.AppendLine($"{info.Name}.Add(item);");
+                        }
+                        _sb.AppendLine("}");
+                        first = false;
+                    }
                 }
                 else
                 {
-                    _sb.AppendLine($"var item = new {itemTypeName}();");
-                    _sb.AppendLine("if (item is IXmlStreamable streamable) streamable.ReadFromXml(child, options);");
-                    _sb.AppendLine($"{info.Name}.Add(item);");
+                    if (itemXmlName != null)
+                    {
+                        _sb.AppendLine($"if (child.Name.LocalName != \"{itemXmlName}\") continue;");
+                    }
+
+                    string itemTypeName = itemType.ToDisplayString();
+                    bool isItemPrimitive = PropertyHelpers.IsPrimitive(itemType);
+                    
+                    if (isItemPrimitive)
+                    {
+                        if (itemType.SpecialType == SpecialType.System_String)
+                            _sb.AppendLine($"{info.Name}.Add(child.Value);");
+                        else
+                            _sb.AppendLine($"{info.Name}.Add(({itemTypeName})child);");
+                    }
+                    else
+                    {
+                        _sb.AppendLine($"var item = new {itemTypeName}();");
+                        _sb.AppendLine("if (item is IXmlStreamable streamable) streamable.ReadFromXml(child, options);");
+                        _sb.AppendLine($"{info.Name}.Add(item);");
+                    }
                 }
             }
             _sb.AppendLine("}");

@@ -1,7 +1,6 @@
 using Microsoft.CodeAnalysis;
-using System.Linq;
 
-namespace SourceGeneratorUtils
+namespace XmlSourceGenerator.Helpers
 {
     internal static class XmlNamespaceHelper
     {
@@ -12,7 +11,7 @@ namespace SourceGeneratorUtils
                 if (attr.AttributeClass == null) continue;
                 
                 string name = attr.AttributeClass.Name;
-                if (name == "XmlElementAttribute" || name == "XmlRootAttribute" || name == "XmlAttributeAttribute" || name == "XmlTypeAttribute")
+                if (name == "XmlElementAttribute" || name == "XmlRootAttribute" || name == "XmlAttributeAttribute" || name == "XmlTypeAttribute" || name == "XmlArrayAttribute")
                 {
                     var nsArg = attr.NamedArguments.FirstOrDefault(a => a.Key == "Namespace");
                     if (!nsArg.Equals(default(KeyValuePair<string, TypedConstant>)))

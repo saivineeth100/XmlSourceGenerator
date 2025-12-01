@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
-
-namespace SourceGeneratorUtils
+namespace XmlSourceGenerator.Abstractions
 {
     /// <summary>
     /// Options for configuring XML serialization behavior.
@@ -21,28 +18,42 @@ namespace SourceGeneratorUtils
         public XmlNamingPolicy PropertyNamingPolicy { get; set; }
 
         /// <summary>
-        /// Dictionary of specific property overrides.
+        /// Gets or sets a value indicating whether options should take precedence over attributes.
+        /// If true, PropertySettings will be checked even if [XmlElement] or other attributes are present.
+        /// Default is false.
+        /// </summary>
+        public bool PreferOptionsOverAttributes { get; set; } = false;
+
+        /// <summary>
+        /// Dictionary of specific property settings.
         /// Key: (Type of the class, Property Name)
-        /// Value: The desired XML Element Name
+        /// Value: The settings for that property
+        /// </summary>
+        public Dictionary<(Type, string), XmlPropertySettings> PropertySettings { get; } = new Dictionary<(Type, string), XmlPropertySettings>();
+
+        /// <summary>
+        /// Legacy dictionary for simple name overrides.
+        /// Kept for backward compatibility, but PropertySettings is preferred.
         /// </summary>
         public Dictionary<(Type, string), string> PropertyOverrides { get; } = new Dictionary<(Type, string), string>();
 
         /// <summary>
         /// Resolves the XML element name for a given property.
         /// Priority:
-        /// 1. Explicit Override in PropertyOverrides
-        /// 2. PropertyNamingPolicy (if set)
-        /// 3. Original Property Name
+        /// 1. PropertySettings.XmlName (if present)
+        /// 2. Explicit Override in PropertyOverrides
+        /// 3. PropertyNamingPolicy (if set)
+        /// 4. Original Property Name
         /// </summary>
         public string GetXmlName(Type type, string propertyName)
         {
-            // Fast path: if no overrides and no policy, return original name
-            // This avoids tuple allocation and dictionary lookup for the common case
-            if (PropertyOverrides.Count == 0 && PropertyNamingPolicy == null)
+            // Check PropertySettings first
+            if (PropertySettings.TryGetValue((type, propertyName), out var settings) && !string.IsNullOrEmpty(settings.XmlName))
             {
-                return propertyName;
+                return settings.XmlName!;
             }
 
+            // Fallback to legacy overrides
             if (PropertyOverrides.TryGetValue((type, propertyName), out string overrideName))
             {
                 return overrideName;
@@ -54,6 +65,39 @@ namespace SourceGeneratorUtils
             }
 
             return propertyName;
+        }
+
+        /// <summary>
+        /// Helper to get the override name for a property, if any.
+        /// Returns null if no override is configured.
+        /// </summary>
+        public string? GetOverride(Type type, string propertyName)
+        {
+            // Check PropertySettings first
+            if (PropertySettings.TryGetValue((type, propertyName), out var settings) && !string.IsNullOrEmpty(settings.XmlName))
+            {
+                return settings.XmlName;
+            }
+
+            // Fallback to legacy overrides
+            if (PropertyOverrides.TryGetValue((type, propertyName), out string overrideName))
+            {
+                return overrideName;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Helper to get polymorphic mappings for a property.
+        /// </summary>
+        public List<(Type Type, string Name)>? GetPolymorphicMappings(Type type, string propertyName)
+        {
+            if (PropertySettings.TryGetValue((type, propertyName), out var settings))
+            {
+                return settings.PolymorphicMappings;
+            }
+            return null;
         }
     }
 }

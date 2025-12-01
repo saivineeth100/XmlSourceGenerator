@@ -1,8 +1,9 @@
 using System;
 using Xunit;
-using SourceGeneratorUtils;
+using XmlSourceGenerator.Abstractions;
+using XmlSourceGenerator.Abstractions;
 
-namespace SourceGeneratorUtils.Tests.Integration
+namespace XmlSourceGenerator.Tests.Integration
 {
     public class NamingPolicyTests
     {

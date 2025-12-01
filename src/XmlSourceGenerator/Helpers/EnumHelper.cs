@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 
-namespace SourceGeneratorUtils
+namespace XmlSourceGenerator.Helpers
 {
     internal static class EnumHelper
     {
@@ -17,9 +14,20 @@ namespace SourceGeneratorUtils
 
                 string xmlName = member.Name;
                 var attr = member.GetAttributes().FirstOrDefault(ad => ad.AttributeClass.Name == "XmlEnumAttribute");
-                if (attr != null && attr.ConstructorArguments.Length > 0)
+                if (attr != null)
                 {
-                    xmlName = (string)attr.ConstructorArguments[0].Value;
+                    if (attr.ConstructorArguments.Length > 0)
+                    {
+                        xmlName = (string)attr.ConstructorArguments[0].Value;
+                    }
+                    else
+                    {
+                        var nameArg = attr.NamedArguments.FirstOrDefault(a => a.Key == "Name").Value.Value as string;
+                        if (!string.IsNullOrEmpty(nameArg))
+                        {
+                            xmlName = nameArg;
+                        }
+                    }
                 }
                 
                 map[member.Name] = xmlName;
@@ -38,9 +46,20 @@ namespace SourceGeneratorUtils
 
                 string xmlName = member.Name;
                 var attr = member.GetAttributes().FirstOrDefault(ad => ad.AttributeClass.Name == "XmlEnumAttribute");
-                if (attr != null && attr.ConstructorArguments.Length > 0)
+                if (attr != null)
                 {
-                    xmlName = (string)attr.ConstructorArguments[0].Value;
+                    if (attr.ConstructorArguments.Length > 0)
+                    {
+                        xmlName = (string)attr.ConstructorArguments[0].Value;
+                    }
+                    else
+                    {
+                        var nameArg = attr.NamedArguments.FirstOrDefault(a => a.Key == "Name").Value.Value as string;
+                        if (!string.IsNullOrEmpty(nameArg))
+                        {
+                            xmlName = nameArg;
+                        }
+                    }
                 }
                 
                 // Map XML value -> Enum Member Name

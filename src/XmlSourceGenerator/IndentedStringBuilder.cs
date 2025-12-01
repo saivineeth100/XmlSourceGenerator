@@ -1,7 +1,6 @@
-using System;
 using System.Text;
 
-namespace SourceGeneratorUtils
+namespace XmlSourceGenerator
 {
     /// <summary>
     /// A wrapper around StringBuilder that handles indentation automatically.

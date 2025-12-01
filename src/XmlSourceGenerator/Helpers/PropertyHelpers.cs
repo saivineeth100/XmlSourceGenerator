@@ -1,8 +1,6 @@
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 
-namespace SourceGeneratorUtils
+namespace XmlSourceGenerator.Helpers
 {
     /// <summary>
     /// Helper methods for property traversal and filtering.
@@ -30,6 +28,9 @@ namespace SourceGeneratorUtils
             {
                 foreach (var prop in type.GetMembers().OfType<IPropertySymbol>())
                 {
+                    if (prop.IsStatic || prop.DeclaredAccessibility != Accessibility.Public || prop.IsIndexer)
+                        continue;
+
                     if (propIndex.TryGetValue(prop.Name, out int index))
                     {
                         // Override or shadow: replace with most derived version

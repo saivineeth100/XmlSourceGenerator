@@ -1,9 +1,10 @@
 using System;
 using Xunit;
 using System.Xml.Linq;
-using SourceGeneratorUtils;
+using XmlSourceGenerator;
+using XmlSourceGenerator.Abstractions;
 
-namespace SourceGeneratorUtils.Tests.Integration.Features
+namespace XmlSourceGenerator.Tests.Integration.Features
 {
     public partial class XmlEnumTests
     {

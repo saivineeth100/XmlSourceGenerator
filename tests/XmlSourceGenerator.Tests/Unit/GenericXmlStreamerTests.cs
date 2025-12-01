@@ -5,9 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using Xunit;
-using SourceGeneratorUtils;
+using XmlSourceGenerator.Abstractions;
+using XmlSourceGenerator.Abstractions;
 
-namespace SourceGeneratorUtils.Tests.Unit
+namespace XmlSourceGenerator.Tests.Unit
 {
     public class GenericXmlStreamerTests
     {

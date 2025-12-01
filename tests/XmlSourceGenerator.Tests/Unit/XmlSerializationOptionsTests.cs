@@ -1,8 +1,8 @@
 using System;
 using Xunit;
-using SourceGeneratorUtils;
+using XmlSourceGenerator.Abstractions;
 
-namespace SourceGeneratorUtils.Tests.Unit
+namespace XmlSourceGenerator.Tests.Unit
 {
     public class XmlSerializationOptionsTests
     {

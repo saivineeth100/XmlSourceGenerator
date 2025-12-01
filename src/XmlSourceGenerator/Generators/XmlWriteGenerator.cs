@@ -1,8 +1,7 @@
-using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
-using System.Linq;
+using XmlSourceGenerator.Helpers;
 
-namespace SourceGeneratorUtils
+namespace XmlSourceGenerator.Generators
 {
     /// <summary>
     /// Generates WriteToXml method implementation.
@@ -36,6 +35,14 @@ namespace SourceGeneratorUtils
                     if (rootAttr.ConstructorArguments.Length > 0)
                     {
                         rootName = (string)rootAttr.ConstructorArguments[0].Value;
+                    }
+                    else
+                    {
+                        var elementName = rootAttr.NamedArguments.FirstOrDefault(a => a.Key == "ElementName").Value.Value as string;
+                        if (!string.IsNullOrEmpty(elementName))
+                        {
+                            rootName = elementName;
+                        }
                     }
                 }
 
