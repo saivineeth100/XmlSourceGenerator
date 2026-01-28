@@ -67,7 +67,8 @@ namespace XmlSourceGenerator
                     continue;
 
                 string source = GenerateClass(classSymbol, compilation);
-                context.AddSource($"{classSymbol.Name}{Constants.GeneratedFileSuffix}", 
+                string hintName = classSymbol.ToDisplayString().Replace(".", "_").Replace(":", "_").Replace("<", "_").Replace(">", "_");
+                context.AddSource($"{hintName}{Constants.GeneratedFileSuffix}", 
                     SourceText.From(source, Encoding.UTF8));
             }
         }
@@ -116,7 +117,7 @@ namespace XmlSourceGenerator
                     {
                         sb.AppendLine($"public static readonly Type Type = typeof({classSymbol.ToDisplayString()});");
                         
-                        var properties = PropertyHelpers.GetAllProperties(classSymbol);
+                        var members = PropertyHelpers.GetAllMembers(classSymbol);
                         var uniqueNamespaces = new System.Collections.Generic.HashSet<string>();
                         
                         // Check root namespace
@@ -127,18 +128,18 @@ namespace XmlSourceGenerator
                         }
                         
                         // Single loop: generate constants and collect namespaces
-                        foreach (var prop in properties)
+                        foreach (var member in members)
                         {
-                            if (prop.IsStatic) continue;
+                            if (member.IsStatic) continue;
                             
                             // Generate PropName constant
-                            sb.AppendLine($"public const string {Constants.PropNamePrefix}{prop.Name} = nameof({classSymbol.ToDisplayString()}.{prop.Name});");
+                            sb.AppendLine($"public const string {Constants.PropNamePrefix}{member.Name} = nameof({classSymbol.ToDisplayString()}.{member.Name});");
                             
                             // Generate DefaultXmlName constant
-                            sb.AppendLine($"public const string {Constants.DefaultXmlNamePrefix}{prop.Name} = \"{prop.Name}\";");
+                            sb.AppendLine($"public const string {Constants.DefaultXmlNamePrefix}{member.Name} = \"{member.Name}\";");
                             
                             // Collect property namespace
-                            string? propNs = XmlNamespaceHelper.GetNamespace(prop);
+                            string? propNs = XmlNamespaceHelper.GetNamespace(member);
                             if (propNs != null)
                             {
                                 uniqueNamespaces.Add(propNs);
@@ -159,9 +160,9 @@ namespace XmlSourceGenerator
                     sb.AppendLine("}");
                     sb.AppendLine();
 
-                    new XmlReadGenerator(sb, compilation).GenerateReadMethod(classSymbol);
+                    new XmlReadGenerator(sb).GenerateReadMethod(classSymbol);
                     sb.AppendLine();
-                    new XmlWriteGenerator(sb, compilation).GenerateWriteMethod(classSymbol);
+                    new XmlWriteGenerator(sb).GenerateWriteMethod(classSymbol);
                 }
 
                 sb.AppendLine("}");

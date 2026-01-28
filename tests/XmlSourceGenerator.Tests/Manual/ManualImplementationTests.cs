@@ -16,6 +16,8 @@ namespace XmlSourceGenerator.Tests.Integration
         public int UserId { get; set; }
         public string Username { get; set; }
 
+        public string DefaultXmlRootElementName => "ManualUser";
+
         public void ReadFromXml(XElement element, XmlSerializationOptions options = null)
         {
             var userIdName = options?.GetXmlName(typeof(ManualUser), "UserId") ?? "UserId";
@@ -83,7 +85,7 @@ namespace XmlSourceGenerator.Tests.Integration
             string xml = System.Text.Encoding.UTF8.GetString(stream.ToArray());
             Assert.Contains("﻿<?xml version=\"1.0\" encoding=\"utf-8\"?><ArrayOfItems><ManualUser><UserId>1</UserId><Username>user1</Username></ManualUser><ManualUser><UserId>2</UserId><Username>user2</Username></ManualUser></ArrayOfItems>", xml);
             stream.Position = 0;
-            var restored = GenericXmlStreamer.ReadDataFromStream<ManualUser>(stream).ToList();
+            var restored = GenericXmlStreamer.ReadListDataFromStream<ManualUser>(stream).ToList();
 
             Assert.Equal(2, restored.Count);
             Assert.Equal(1, restored[0].UserId);

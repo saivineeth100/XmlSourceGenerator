@@ -17,8 +17,7 @@ High-performance XML serialization via C# source generation with full `XmlSerial
 ✅ **Advanced Features** - `[XmlEnum]`, `[XmlType]`, `[XmlAnyElement]`, `[XmlAnyAttribute]`  
 ✅ **XML Namespaces** - Full element and root namespace support  
 ✅ **Collections** - Lists, arrays with customizable element names  
-✅ **Thread-Safe** - Verified with 100+ concurrent operations  
-✅ **Production-Ready** - Tested with 1,000+ item collections and 10-level deep nesting  
+
 
 ## Quick Start
 
@@ -84,4 +83,4 @@ var xml = user.WriteToXml();
 
 ## License
 
-MIT © [Saivineeth](https://github.com/saivineeth)
+MIT © [Saivineeth](https://github.com/saivineeth100)

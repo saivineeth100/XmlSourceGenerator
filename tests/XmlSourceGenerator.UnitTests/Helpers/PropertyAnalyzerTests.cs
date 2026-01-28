@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using XmlSourceGenerator.Abstractions;
 using XmlSourceGenerator.Helpers;
+using XmlSourceGenerator.Models;
 
 namespace XmlSourceGenerator.UnitTests.Helpers;
 
@@ -48,10 +49,10 @@ public class PropertyAnalyzerTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var property = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray()[0];
+        var property = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray()[0];
 
         // Act
-        var info = PropertyAnalyzer.AnalyzeProperty(property, compilation);
+        var info = PropertyAnalyzer.AnalyzeMember(property);
 
         // Assert
         info.SerializeAsAttribute.Should().BeTrue();
@@ -76,10 +77,10 @@ public class PropertyAnalyzerTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var property = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray()[0];
+        var property = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray()[0];
 
         // Act
-        var info = PropertyAnalyzer.AnalyzeProperty(property, compilation);
+        var info = PropertyAnalyzer.AnalyzeMember(property);
 
         // Assert
         info.SerializeAsAttribute.Should().BeTrue();
@@ -104,10 +105,10 @@ public class PropertyAnalyzerTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var property = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray()[0];
+        var property = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray()[0];
 
         // Act
-        var info = PropertyAnalyzer.AnalyzeProperty(property, compilation);
+        var info = PropertyAnalyzer.AnalyzeMember(property);
 
         // Assert
         info.SerializeAsInnerText.Should().BeTrue();
@@ -131,10 +132,10 @@ public class PropertyAnalyzerTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var property = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray()[0];
+        var property = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray()[0];
 
         // Act
-        var info = PropertyAnalyzer.AnalyzeProperty(property, compilation);
+        var info = PropertyAnalyzer.AnalyzeMember(property);
 
         // Assert
         info.IsIgnored.Should().BeTrue();
@@ -158,10 +159,10 @@ public class PropertyAnalyzerTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var property = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray()[0];
+        var property = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray()[0];
 
         // Act
-        var info = PropertyAnalyzer.AnalyzeProperty(property, compilation);
+        var info = PropertyAnalyzer.AnalyzeMember(property);
 
         // Assert
         info.XmlElementName.Should().Be("CustomName");
@@ -187,15 +188,15 @@ public class PropertyAnalyzerTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var property = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray()[0];
+        var property = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray()[0];
 
         // Act
-        var info = PropertyAnalyzer.AnalyzeProperty(property, compilation);
+        var info = PropertyAnalyzer.AnalyzeMember(property);
 
         // Assert
         info.ArrayElementName.Should().Be("Items");
         info.ArrayItemElementName.Should().Be("Item");
-        info.PropertyKind.Should().Be(PropertyKind.Collection);
+        info.TypeInfo.Kind.Should().Be(PropertyKind.Collection);
     }
 
     [Fact]
@@ -218,10 +219,10 @@ public class PropertyAnalyzerTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var property = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray()[0];
+        var property = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray()[0];
 
         // Act
-        var info = PropertyAnalyzer.AnalyzeProperty(property, compilation);
+        var info = PropertyAnalyzer.AnalyzeMember(property);
 
         // Assert
         info.IsAnyElement.Should().BeTrue();
@@ -247,10 +248,10 @@ public class PropertyAnalyzerTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var property = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray()[0];
+        var property = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray()[0];
 
         // Act
-        var info = PropertyAnalyzer.AnalyzeProperty(property, compilation);
+        var info = PropertyAnalyzer.AnalyzeMember(property);
 
         // Assert
         info.IsAnyAttribute.Should().BeTrue();
@@ -272,15 +273,15 @@ public class PropertyAnalyzerTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var properties = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray();
+        var properties = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray();
 
         // Act
-        var intInfo = PropertyAnalyzer.AnalyzeProperty(properties[0], compilation);
-        var stringInfo = PropertyAnalyzer.AnalyzeProperty(properties[1], compilation);
+        var intInfo = PropertyAnalyzer.AnalyzeMember(properties[0]);
+        var stringInfo = PropertyAnalyzer.AnalyzeMember(properties[1]);
 
         // Assert
-        intInfo.PropertyKind.Should().Be(PropertyKind.Primitive);
-        stringInfo.PropertyKind.Should().Be(PropertyKind.Primitive);
+        intInfo.TypeInfo.Kind.Should().Be(PropertyKind.Primitive);
+        stringInfo.TypeInfo.Kind.Should().Be(PropertyKind.Primitive);
     }
 
     [Fact]
@@ -300,13 +301,13 @@ public class PropertyAnalyzerTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var property = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray()[0];
+        var property = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray()[0];
 
         // Act
-        var info = PropertyAnalyzer.AnalyzeProperty(property, compilation);
+        var info = PropertyAnalyzer.AnalyzeMember(property);
 
         // Assert
-        info.PropertyKind.Should().Be(PropertyKind.Enum);
+        info.TypeInfo.Kind.Should().Be(PropertyKind.Enum);
     }
 
     [Fact]
@@ -327,15 +328,15 @@ public class PropertyAnalyzerTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var properties = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray();
+        var properties = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray();
 
         // Act
-        var datetimeInfo = PropertyAnalyzer.AnalyzeProperty(properties[0], compilation);
-        var offsetInfo = PropertyAnalyzer.AnalyzeProperty(properties[1], compilation);
+        var datetimeInfo = PropertyAnalyzer.AnalyzeMember(properties[0]);
+        var offsetInfo = PropertyAnalyzer.AnalyzeMember(properties[1]);
 
         // Assert
-        datetimeInfo.PropertyKind.Should().Be(PropertyKind.DateTime);
-        offsetInfo.PropertyKind.Should().Be(PropertyKind.DateTime);
+        datetimeInfo.TypeInfo.Kind.Should().Be(PropertyKind.DateTime);
+        offsetInfo.TypeInfo.Kind.Should().Be(PropertyKind.DateTime);
     }
 
     [Fact]
@@ -355,12 +356,12 @@ public class PropertyAnalyzerTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var property = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray()[0];
+        var property = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray()[0];
 
         // Act
-        var info = PropertyAnalyzer.AnalyzeProperty(property, compilation);
+        var info = PropertyAnalyzer.AnalyzeMember(property);
 
         // Assert
-        info.PropertyKind.Should().Be(PropertyKind.ComplexObject);
+        info.TypeInfo.Kind.Should().Be(PropertyKind.ComplexObject);
     }
 }

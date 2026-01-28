@@ -1,35 +1,33 @@
 using Microsoft.CodeAnalysis;
 using XmlSourceGenerator.Helpers;
+using XmlSourceGenerator.Models;
 
 namespace XmlSourceGenerator.Generators
 {
     /// <summary>
     /// Generates collection read/write code.
     /// </summary>
-    internal class XmlCollectionGenerator
+    public class XmlCollectionGenerator
     {
         private readonly IndentedStringBuilder _sb;
-        private readonly Compilation _compilation;
-
-        public XmlCollectionGenerator(IndentedStringBuilder sb, Compilation compilation)
+        public XmlCollectionGenerator(IndentedStringBuilder sb)
         {
             _sb = sb;
-            _compilation = compilation;
+            //_compilation = compilation;
         }
 
-        public void GenerateCollectionRead(PropertyInfo info, INamedTypeSymbol classSymbol)
+        public void GenerateCollectionRead(GeneratorPropertyModel info)
         {
-            var namedType = (INamedTypeSymbol)info.Type;
-            var itemType = namedType.TypeArguments[0];
-            string itemTypeName = itemType.ToDisplayString();
+            var itemTypeModel = info.ItemTypeInfo!;
+            string itemTypeName = itemTypeModel.FullName;
             
             string containerName = info.ArrayElementName ?? info.Name;
             bool isWrapped = info.ArrayElementName != null;
-            string itemXmlName = info.ArrayItemElementName ?? info.XmlElementName ?? itemType.Name;
+            string itemXmlName = info.ArrayItemElementName ?? info.XmlElementName ?? itemTypeModel.Name;
 
-            string? ns = XmlNamespaceHelper.GetNamespace(info.Symbol);
+            string? ns = info.Namespace;
 
-            _sb.AppendLine($"if ({info.Name} == null) {info.Name} = new();");
+
 
             if (isWrapped)
             {
@@ -42,15 +40,20 @@ namespace XmlSourceGenerator.Generators
                 _sb.AppendLine("{");
                 using (_sb.Indent())
                 {
-                    GenerateCollectionLoop(info, itemType, itemXmlName, $"container_{info.Name}", ns);
+                    GenerateCollectionLoop(info, itemTypeModel, itemXmlName, $"container_{info.Name}", ns);
                 }
                 _sb.AppendLine("}");
             }
             else
             {
-                if (info.XmlElementName != null)
+                if (info.XmlElementName != null || info.IsFlattened)
                 {
-                    GenerateCollectionLoop(info, itemType, info.XmlElementName, "element", ns);
+                    // Explicit or Implicit Flattening: Read directly from element
+                    // If IsFlattened and not named, we might need to filter by Type Name or Polymorphic names
+                    // If Polymorphic, GenerateCollectionLoop handles names internally.
+                    // If not polymorphic and not named, default to ItemType Name.
+                    string? effectiveItemName = info.XmlElementName ?? (info.IsPolymorphic ? null : itemTypeModel.Name);
+                    GenerateCollectionLoop(info, itemTypeModel, effectiveItemName, "element", ns);
                 }
                 else
                 {
@@ -64,14 +67,14 @@ namespace XmlSourceGenerator.Generators
                     _sb.AppendLine("{");
                     using (_sb.Indent())
                     {
-                        GenerateCollectionLoop(info, itemType, null, $"container_{info.Name}", ns); 
+                        GenerateCollectionLoop(info, itemTypeModel, null, $"container_{info.Name}", ns);  
                     }
                     _sb.AppendLine("}");
                 }
             }
         }
 
-        private void GenerateCollectionLoop(PropertyInfo info, ITypeSymbol itemType, string? itemXmlName, string parentElementVar, string? ns)
+        private void GenerateCollectionLoop(GeneratorPropertyModel info, GeneratorTypeModel itemTypeModel, string? itemXmlName, string parentElementVar, string? ns)
         {
             _sb.AppendLine($"foreach (var child in {parentElementVar}.Elements())");
             _sb.AppendLine("{");
@@ -87,9 +90,10 @@ namespace XmlSourceGenerator.Generators
                         _sb.AppendLine("{");
                         using (_sb.Indent())
                         {
-                            string targetTypeName = mapping.TargetType.ToDisplayString();
+                            string targetTypeName = mapping.TargetTypeName;
                             _sb.AppendLine($"var item = new {targetTypeName}();");
                             _sb.AppendLine("if (item is IXmlStreamable streamable) streamable.ReadFromXml(child, options);");
+                            _sb.AppendLine($"if ({info.Name} == null) {info.Name} = new();");
                             _sb.AppendLine($"{info.Name}.Add(item);");
                         }
                         _sb.AppendLine("}");
@@ -103,12 +107,13 @@ namespace XmlSourceGenerator.Generators
                         _sb.AppendLine($"if (child.Name.LocalName != \"{itemXmlName}\") continue;");
                     }
 
-                    string itemTypeName = itemType.ToDisplayString();
-                    bool isItemPrimitive = PropertyHelpers.IsPrimitive(itemType);
+                    string itemTypeName = itemTypeModel.FullName;
+                    bool isItemPrimitive = itemTypeModel.Kind == PropertyKind.Primitive;
                     
+                    _sb.AppendLine($"if ({info.Name} == null) {info.Name} = new();");
                     if (isItemPrimitive)
                     {
-                        if (itemType.SpecialType == SpecialType.System_String)
+                        if (itemTypeModel.IsString)
                             _sb.AppendLine($"{info.Name}.Add(child.Value);");
                         else
                             _sb.AppendLine($"{info.Name}.Add(({itemTypeName})child);");
@@ -124,16 +129,16 @@ namespace XmlSourceGenerator.Generators
             _sb.AppendLine("}");
         }
 
-        public void GenerateCollectionWrite(PropertyInfo info)
+        public void GenerateCollectionWrite(GeneratorPropertyModel info)
         {
-            var namedType = (INamedTypeSymbol)info.Type;
-            var itemType = namedType.TypeArguments[0];
+            var itemTypeModel = info.ItemTypeInfo;
             
             bool isWrapped = info.ArrayElementName != null;
             string containerName = info.ArrayElementName ?? info.Name;
-            string itemXmlName = info.ArrayItemElementName ?? info.XmlElementName ?? itemType.Name;
+            string? itemXmlName = info.ArrayItemElementName ?? info.XmlElementName;
+            string fallbackItemName = itemXmlName ?? itemTypeModel.Name;
 
-            string? ns = XmlNamespaceHelper.GetNamespace(info.Symbol);
+            string? ns = info.Namespace;
 
             _sb.AppendLine($"if ({info.Name} != null)");
             _sb.AppendLine("{");
@@ -154,7 +159,7 @@ namespace XmlSourceGenerator.Generators
                     _sb.AppendLine("element.Add(container);");
                     parentVar = "container";
                 }
-                else if (info.XmlElementName == null) // Implicit container
+                else if (info.XmlElementName == null && !info.IsFlattened) // Implicit container
                 {
                      if (ns != null)
                      {
@@ -173,12 +178,12 @@ namespace XmlSourceGenerator.Generators
                 _sb.AppendLine("{");
                 using (_sb.Indent())
                 {
-                    if (PropertyHelpers.IsPrimitive(itemType))
+                    if (itemTypeModel.Kind == PropertyKind.Primitive)
                     {
                          if (ns != null && isWrapped) 
-                             _sb.AppendLine($"{parentVar}.Add(new XElement(ns_{info.Name} + \"{itemXmlName}\", item));");
+                             _sb.AppendLine($"{parentVar}.Add(new XElement(ns_{info.Name} + \"{fallbackItemName}\", item));");
                          else
-                             _sb.AppendLine($"{parentVar}.Add(new XElement(\"{itemXmlName}\", item));");
+                             _sb.AppendLine($"{parentVar}.Add(new XElement(\"{fallbackItemName}\", item));");
                     }
                     else
                     {

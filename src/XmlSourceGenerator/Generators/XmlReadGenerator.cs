@@ -1,44 +1,66 @@
 using Microsoft.CodeAnalysis;
 using XmlSourceGenerator.Helpers;
+using XmlSourceGenerator.Models;
 
 namespace XmlSourceGenerator.Generators
 {
     /// <summary>
     /// Generates ReadFromXml method implementation.
     /// </summary>
-    internal partial class XmlReadGenerator
+    public partial class XmlReadGenerator
     {
         private readonly IndentedStringBuilder _sb;
-        private readonly Compilation _compilation;
-
-        public XmlReadGenerator(IndentedStringBuilder sb, Compilation compilation)
+        public XmlReadGenerator(IndentedStringBuilder sb)
         {
             _sb = sb;
-            _compilation = compilation;
+        }
+
+        private bool ImplementsIXmlStreamable(ITypeSymbol type)
+        {
+            return type.AllInterfaces.Any(i => i.Name == "IXmlStreamable" && i.ContainingNamespace.ToString() == "XmlSourceGenerator.Abstractions");
+        }
+
+        public void GenerateReadMethod(GeneratorTypeModel model)
+        {
+            GenerateReadMethodInternal(model.Properties, model.Name, false);
         }
 
         public void GenerateReadMethod(INamedTypeSymbol classSymbol)
         {
-            _sb.AppendLine("public void ReadFromXml(XElement element, XmlSerializationOptions options = null)");
+            var members = PropertyHelpers.GetAllMembers(classSymbol);
+            var analyzedProperties = new List<GeneratorPropertyModel>();
+
+            foreach (var member in members)
+            {
+                if (member.IsStatic) continue;
+                if (member is IPropertySymbol p && p.IsReadOnly) continue;
+
+                var info = PropertyAnalyzer.AnalyzeMember(member);
+                if (info.IsIgnored) continue;
+                analyzedProperties.Add(info);
+            }
+
+            bool isNew = classSymbol.BaseType != null && ImplementsIXmlStreamable(classSymbol.BaseType);
+            GenerateReadMethodInternal(analyzedProperties, classSymbol.Name, isNew);
+        }
+
+        private void GenerateReadMethodInternal(IEnumerable<GeneratorPropertyModel> properties, string className, bool isNew)
+        {
+            string newModifier = isNew ? "new " : "";
+            _sb.AppendLine($"public {newModifier} void ReadFromXml(XElement element, XmlSerializationOptions? options = null)");
             _sb.AppendLine("{");
             
             using (_sb.Indent())
             {
-
-                var properties = PropertyHelpers.GetAllProperties(classSymbol);
                 var knownElements = new System.Collections.Generic.HashSet<string>();
                 var knownAttributes = new System.Collections.Generic.HashSet<string>();
 
-                PropertyInfo? anyElementProp = null;
-                PropertyInfo? anyAttributeProp = null;
+                GeneratorPropertyModel? anyElementProp = null;
+                GeneratorPropertyModel? anyAttributeProp = null;
 
                 // Pass 1: Analyze and collect known names
-                foreach (var prop in properties)
+                foreach (var info in properties)
                 {
-                    if (prop.IsReadOnly || prop.IsStatic) continue;
-                    var info = PropertyAnalyzer.AnalyzeProperty(prop, _compilation);
-                    if (info.IsIgnored) continue;
-
                     if (info.IsAnyElement)
                     {
                         anyElementProp = info;
@@ -61,40 +83,33 @@ namespace XmlSourceGenerator.Generators
                         {
                             knownElements.Add(info.XmlElementName);
                         }
-                        else if (info.PropertyKind == PropertyKind.Collection && info.ArrayElementName != null)
+                        else if (info.TypeInfo.Kind == PropertyKind.Collection && info.ArrayElementName != null)
                         {
                             knownElements.Add(info.ArrayElementName);
                         }
                         else
                         {
-                            // Dynamic name or implicit
-                            // If dynamic, we can't easily add to knownElements set at compile time without more complex logic.
-                            // But usually it's static.
-                            // If it depends on options, we might miss it.
-                            // For now, assume static or default.
                             knownElements.Add(info.Name); 
                         }
                     }
                 }
 
                 // Pass 2: Generate standard read
-                foreach (var prop in properties)
+                foreach (var info in properties)
                 {
-                    if (prop.IsReadOnly || prop.IsStatic) continue;
-                    var info = PropertyAnalyzer.AnalyzeProperty(prop, _compilation);
-                    if (info.IsIgnored || info.IsAnyElement || info.IsAnyAttribute) continue;
+                    if (info.IsAnyElement || info.IsAnyAttribute) continue;
 
                     if (info.IsPolymorphic)
                     {
                         GeneratePolymorphicListRead(info);
                     }
-                    else if (info.PropertyKind == PropertyKind.Collection)
+                    else if (info.TypeInfo.Kind == PropertyKind.Collection)
                     {
-                        new XmlCollectionGenerator(_sb, _compilation).GenerateCollectionRead(info, classSymbol);
+                        new XmlCollectionGenerator(_sb).GenerateCollectionRead(info);
                     }
                     else
                     {
-                        new XmlPropertyGenerator(_sb, _compilation).GenerateStandardPropertyRead(info, classSymbol);
+                        new XmlPropertyGenerator(_sb).GenerateStandardPropertyRead(info, className);
                     }
                 }
 
@@ -157,7 +172,7 @@ namespace XmlSourceGenerator.Generators
             _sb.AppendLine("}");
         }
 
-        private void GeneratePolymorphicListRead(PropertyInfo info)
+        private void GeneratePolymorphicListRead(GeneratorPropertyModel info)
         {
             _sb.AppendLine($"if ({info.Name} == null) {info.Name} = new();");
             _sb.AppendLine("foreach (var child in element.Elements())");
@@ -176,8 +191,15 @@ namespace XmlSourceGenerator.Generators
                         {
                             string varName = $"item{index}";
                             string streamableVarName = $"streamable{index}";
-                            _sb.AppendLine($"var {varName} = new {mapping.TargetType.ToDisplayString()}();");
-                            _sb.AppendLine($"if ({varName} is IXmlStreamable {streamableVarName}) {streamableVarName}.ReadFromXml(child, options);");
+                            _sb.AppendLine($"var {varName} = new {mapping.TargetTypeName}();");
+                            if (mapping.ImplementsIXmlStreamable)
+                            {
+                                 _sb.AppendLine($"if ({varName} is IXmlStreamable {streamableVarName}) {streamableVarName}.ReadFromXml(child, options);");
+                            }
+                            else
+                            {
+                                 _sb.AppendLine($"{varName} = ReflectionHelper.Deserialize<{mapping.TargetTypeName}>(child, options);");
+                            }
                             _sb.AppendLine($"{info.Name}.Add({varName});");
                             _sb.AppendLine("break;");
                         }

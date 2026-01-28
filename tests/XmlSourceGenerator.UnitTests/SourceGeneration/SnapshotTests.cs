@@ -1,16 +1,12 @@
+using FluentAssertions;
 using XmlSourceGenerator.UnitTests.Helpers;
-using XmlSourceGenerator.UnitTests.Verifiers;
 
 namespace XmlSourceGenerator.UnitTests.SourceGeneration;
 
-/// <summary>
-/// Comprehensive snapshot tests for source generation using full expected output comparison.
-/// Each test verifies the COMPLETE generated code matches the expected snapshot exactly.
-/// </summary>
 public class SnapshotTests
 {
     [Fact]
-    public async Task SimpleModel_GeneratesExpectedCode()
+    public void SimpleModel_GeneratesExpectedCode()
     {
         var source = @"
 using XmlSourceGenerator.Abstractions;
@@ -24,21 +20,55 @@ namespace Test
     }
 }";
 
-        // First, let's capture what the generator actually produces
-        var actualOutput = GeneratorOutputHelper.CaptureGeneratedCode(source);
-        
-        // For now, output it so we can create the baseline
-        // TODO: Replace this with actual expected snapshot once captured
-        GeneratorOutputHelper.PrintGeneratedCode(source, "SimpleModel Output");
-        
-        // Use the verifier with the actual output as expected
-        await CSharpSourceGeneratorVerifier<XmlGenerator>.VerifyGeneratorAsync(
-            source,
-            ("SimpleModel_XmlGenerated.g.cs", actualOutput));
+        var expectedCode = @"using System;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using System.Globalization;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public partial class SimpleModel : IXmlStreamable
+    {
+        private static class XmlTypeInfo
+        {
+            public static readonly Type Type = typeof(Test.SimpleModel);
+            public const string PropName_Name = nameof(Test.SimpleModel.Name);
+            public const string DefaultXmlName_Name = ""Name"";
+        }
+
+        public  void ReadFromXml(XElement element, XmlSerializationOptions? options = null)
+        {
+            var xmlName_Name = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_Name) ?? XmlTypeInfo.DefaultXmlName_Name;
+            var elem_Name = element.Element(xmlName_Name);
+            if (elem_Name != null)
+            {
+                Name = elem_Name.Value;
+            }
+        }
+
+        [global::System.ComponentModel.Browsable(false)]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
+        public string DefaultXmlRootElementName => ""SimpleModel"";
+        public  XElement WriteToXml(XmlSerializationOptions? options = null)
+        {
+            var element = new XElement(DefaultXmlRootElementName);
+            var xmlName_Name = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_Name) ?? XmlTypeInfo.DefaultXmlName_Name;
+            if (Name != null)
+            {
+                element.Add(new XElement(xmlName_Name, Name));
+            }
+            return element;
+        }
+    }
+}";
+
+        GeneratorOutputHelper.VerifyGeneratedCode(source, expectedCode, "SimpleModel");
     }
 
     [Fact]
-    public async Task ModelWithXmlElement_GeneratesExpectedCode()
+    public void ModelWithXmlElement_GeneratesExpectedCode()
     {
         var source = @"
 using XmlSourceGenerator.Abstractions;
@@ -53,16 +83,65 @@ namespace Test
     }
 }";
 
-        var actualOutput = GeneratorOutputHelper.CaptureGeneratedCode(source);
-        GeneratorOutputHelper.PrintGeneratedCode(source, "Product with XmlElement");
-        
-        await CSharpSourceGeneratorVerifier<XmlGenerator>.VerifyGeneratorAsync(
-            source,
-            ("Product_XmlGenerated.g.cs", actualOutput));
+        var expectedCode = @"using System;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using System.Globalization;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public partial class Product : IXmlStreamable
+    {
+        private static class XmlTypeInfo
+        {
+            public static readonly Type Type = typeof(Test.Product);
+            public const string PropName_Name = nameof(Test.Product.Name);
+            public const string DefaultXmlName_Name = ""Name"";
+        }
+
+        public  void ReadFromXml(XElement element, XmlSerializationOptions? options = null)
+        {
+            string xmlName_Name = ""ProductName"";
+            if (options != null && options.PreferOptionsOverAttributes)
+            {
+                var override_Name = options.GetOverride(typeof(Product), ""Name"");
+                if (!string.IsNullOrEmpty(override_Name)) xmlName_Name = override_Name;
+            }
+            var elem_Name = element.Element(xmlName_Name);
+            if (elem_Name != null)
+            {
+                Name = elem_Name.Value;
+            }
+        }
+
+        [global::System.ComponentModel.Browsable(false)]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
+        public string DefaultXmlRootElementName => ""Product"";
+        public  XElement WriteToXml(XmlSerializationOptions? options = null)
+        {
+            var element = new XElement(DefaultXmlRootElementName);
+            string xmlName_Name = ""ProductName"";
+            if (options != null && options.PreferOptionsOverAttributes)
+            {
+                var override_Name = options.GetOverride(typeof(Product), ""Name"");
+                if (!string.IsNullOrEmpty(override_Name)) xmlName_Name = override_Name;
+            }
+            if (Name != null)
+            {
+                element.Add(new XElement(xmlName_Name, Name));
+            }
+            return element;
+        }
+    }
+}";
+
+        GeneratorOutputHelper.VerifyGeneratedCode(source, expectedCode, "Product");
     }
 
     [Fact]
-    public async Task ModelWithXmlAttribute_GeneratesExpectedCode()
+    public void ModelWithXmlAttribute_GeneratesExpectedCode()
     {
         var source = @"
 using XmlSourceGenerator.Abstractions;
@@ -77,16 +156,50 @@ namespace Test
     }
 }";
 
-        var actualOutput = GeneratorOutputHelper.CaptureGeneratedCode(source);
-        GeneratorOutputHelper.PrintGeneratedCode(source, "Product with XmlAttribute");
-        
-        await CSharpSourceGeneratorVerifier<XmlGenerator>.VerifyGeneratorAsync(
-            source,
-            ("Product_XmlGenerated.g.cs", actualOutput));
+        var expectedCode = @"using System;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using System.Globalization;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public partial class Product : IXmlStreamable
+    {
+        private static class XmlTypeInfo
+        {
+            public static readonly Type Type = typeof(Test.Product);
+            public const string PropName_Id = nameof(Test.Product.Id);
+            public const string DefaultXmlName_Id = ""Id"";
+        }
+
+        public  void ReadFromXml(XElement element, XmlSerializationOptions? options = null)
+        {
+            var attr_Id = element.Attribute(""Id"");
+            if (attr_Id != null)
+            {
+                Id = (int)attr_Id;
+            }
+        }
+
+        [global::System.ComponentModel.Browsable(false)]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
+        public string DefaultXmlRootElementName => ""Product"";
+        public  XElement WriteToXml(XmlSerializationOptions? options = null)
+        {
+            var element = new XElement(DefaultXmlRootElementName);
+            element.Add(new XAttribute(""Id"", Id));
+            return element;
+        }
+    }
+}";
+
+        GeneratorOutputHelper.VerifyGeneratedCode(source, expectedCode, "Product");
     }
 
     [Fact]
-    public async Task ModelWithCollection_GeneratesExpectedCode()
+    public void ModelWithCollection_GeneratesExpectedCode()
     {
         var source = @"
 using System.Collections.Generic;
@@ -101,16 +214,57 @@ namespace Test
     }
 }";
 
-        var actualOutput = GeneratorOutputHelper.CaptureGeneratedCode(source);
-        GeneratorOutputHelper.PrintGeneratedCode(source, "Order with List");
-        
-        await CSharpSourceGeneratorVerifier<XmlGenerator>.VerifyGeneratorAsync(
-            source,
-            ("Order_XmlGenerated.g.cs", actualOutput));
+        var expectedCode = @"using System;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using System.Globalization;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public partial class Order : IXmlStreamable
+    {
+        private static class XmlTypeInfo
+        {
+            public static readonly Type Type = typeof(Test.Order);
+            public const string PropName_Items = nameof(Test.Order.Items);
+            public const string DefaultXmlName_Items = ""Items"";
+        }
+
+        public  void ReadFromXml(XElement element, XmlSerializationOptions? options = null)
+        {
+            foreach (var child in element.Elements())
+            {
+                if (child.Name.LocalName != ""String"") continue;
+                if (Items == null) Items = new();
+                Items.Add(child.Value);
+            }
+        }
+
+        [global::System.ComponentModel.Browsable(false)]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
+        public string DefaultXmlRootElementName => ""Order"";
+        public  XElement WriteToXml(XmlSerializationOptions? options = null)
+        {
+            var element = new XElement(DefaultXmlRootElementName);
+            if (Items != null)
+            {
+                foreach (var item in Items)
+                {
+                    element.Add(new XElement(""String"", item));
+                }
+            }
+            return element;
+        }
+    }
+}";
+
+        GeneratorOutputHelper.VerifyGeneratedCode(source, expectedCode, "Order");
     }
 
     [Fact]
-    public async Task MultipleProperties_GeneratesExpectedCode()
+    public void MultipleProperties_GeneratesExpectedCode()
     {
         var source = @"
 using System;
@@ -128,11 +282,551 @@ namespace Test
     }
 }";
 
-        var actualOutput = GeneratorOutputHelper.CaptureGeneratedCode(source);
-        GeneratorOutputHelper.PrintGeneratedCode(source, "Person with Multiple Properties");
+        var expectedCode = @"using System;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using System.Globalization;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public partial class Person : IXmlStreamable
+    {
+        private static class XmlTypeInfo
+        {
+            public static readonly Type Type = typeof(Test.Person);
+            public const string PropName_FirstName = nameof(Test.Person.FirstName);
+            public const string DefaultXmlName_FirstName = ""FirstName"";
+            public const string PropName_LastName = nameof(Test.Person.LastName);
+            public const string DefaultXmlName_LastName = ""LastName"";
+            public const string PropName_Age = nameof(Test.Person.Age);
+            public const string DefaultXmlName_Age = ""Age"";
+            public const string PropName_BirthDate = nameof(Test.Person.BirthDate);
+            public const string DefaultXmlName_BirthDate = ""BirthDate"";
+        }
+
+        public  void ReadFromXml(XElement element, XmlSerializationOptions? options = null)
+        {
+            var xmlName_FirstName = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_FirstName) ?? XmlTypeInfo.DefaultXmlName_FirstName;
+            var elem_FirstName = element.Element(xmlName_FirstName);
+            if (elem_FirstName != null)
+            {
+                FirstName = elem_FirstName.Value;
+            }
+            var xmlName_LastName = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_LastName) ?? XmlTypeInfo.DefaultXmlName_LastName;
+            var elem_LastName = element.Element(xmlName_LastName);
+            if (elem_LastName != null)
+            {
+                LastName = elem_LastName.Value;
+            }
+            var xmlName_Age = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_Age) ?? XmlTypeInfo.DefaultXmlName_Age;
+            var elem_Age = element.Element(xmlName_Age);
+            if (elem_Age != null)
+            {
+                Age = (int)elem_Age;
+            }
+            var xmlName_BirthDate = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_BirthDate) ?? XmlTypeInfo.DefaultXmlName_BirthDate;
+            var elem_BirthDate = element.Element(xmlName_BirthDate);
+            if (elem_BirthDate != null)
+            {
+                BirthDate = global::System.DateTime.Parse(elem_BirthDate.Value, CultureInfo.InvariantCulture);
+            }
+        }
+
+        [global::System.ComponentModel.Browsable(false)]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
+        public string DefaultXmlRootElementName => ""Person"";
+        public  XElement WriteToXml(XmlSerializationOptions? options = null)
+        {
+            var element = new XElement(DefaultXmlRootElementName);
+            var xmlName_FirstName = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_FirstName) ?? XmlTypeInfo.DefaultXmlName_FirstName;
+            if (FirstName != null)
+            {
+                element.Add(new XElement(xmlName_FirstName, FirstName));
+            }
+            var xmlName_LastName = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_LastName) ?? XmlTypeInfo.DefaultXmlName_LastName;
+            if (LastName != null)
+            {
+                element.Add(new XElement(xmlName_LastName, LastName));
+            }
+            var xmlName_Age = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_Age) ?? XmlTypeInfo.DefaultXmlName_Age;
+            element.Add(new XElement(xmlName_Age, Age));
+            var xmlName_BirthDate = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_BirthDate) ?? XmlTypeInfo.DefaultXmlName_BirthDate;
+            element.Add(new XElement(xmlName_BirthDate, BirthDate));
+            return element;
+        }
+    }
+}";
+
+        GeneratorOutputHelper.VerifyGeneratedCode(source, expectedCode, "Person");
+    }
+
+    [Fact]
+    public void ModelWithXmlIgnore_GeneratesExpectedCode()
+    {
+        var source = @"
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    [XmlAutoGenerated]
+    public partial class Product
+    {
+        public string Name { get; set; }
         
-        await CSharpSourceGeneratorVerifier<XmlGenerator>.VerifyGeneratorAsync(
-            source,
-            ("Person_XmlGenerated.g.cs", actualOutput));
+        [XmlIgnore]
+        public string InternalCode { get; set; }
+    }
+}";
+
+        var expectedCode = @"using System;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using System.Globalization;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public partial class Product : IXmlStreamable
+    {
+        private static class XmlTypeInfo
+        {
+            public static readonly Type Type = typeof(Test.Product);
+            public const string PropName_Name = nameof(Test.Product.Name);
+            public const string DefaultXmlName_Name = ""Name"";
+            public const string PropName_InternalCode = nameof(Test.Product.InternalCode);
+            public const string DefaultXmlName_InternalCode = ""InternalCode"";
+        }
+
+        public  void ReadFromXml(XElement element, XmlSerializationOptions? options = null)
+        {
+            var xmlName_Name = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_Name) ?? XmlTypeInfo.DefaultXmlName_Name;
+            var elem_Name = element.Element(xmlName_Name);
+            if (elem_Name != null)
+            {
+                Name = elem_Name.Value;
+            }
+        }
+
+        [global::System.ComponentModel.Browsable(false)]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
+        public string DefaultXmlRootElementName => ""Product"";
+        public  XElement WriteToXml(XmlSerializationOptions? options = null)
+        {
+            var element = new XElement(DefaultXmlRootElementName);
+            var xmlName_Name = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_Name) ?? XmlTypeInfo.DefaultXmlName_Name;
+            if (Name != null)
+            {
+                element.Add(new XElement(xmlName_Name, Name));
+            }
+            return element;
+        }
+    }
+}";
+
+        GeneratorOutputHelper.VerifyGeneratedCode(source, expectedCode, "Product");
+    }
+
+    [Fact]
+    public void ModelWithPolymorphicXmlElement_GeneratesExpectedCode()
+    {
+        var source = @"
+using System.Collections.Generic;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public class BaseLedgerEntry {}
+
+    [XmlAutoGenerated]
+    public partial class Voucher
+    {
+        [XmlElement(ElementName = ""ALLLEDGERENTRIES.LIST"", Type = typeof(AllLedgerEntry))]
+        [XmlElement(ElementName = ""LEDGERENTRIES.LIST"", Type = typeof(LedgerEntry))]
+        public List<BaseLedgerEntry> LedgerEntries { get; set; }
+    }
+
+    [XmlAutoGenerated]
+    public partial class AllLedgerEntry : BaseLedgerEntry {}
+
+    [XmlAutoGenerated]
+    public partial class LedgerEntry : BaseLedgerEntry {}
+}";
+
+        var expectedCode = @"using System;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using System.Globalization;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public partial class Voucher : IXmlStreamable
+    {
+        private static class XmlTypeInfo
+        {
+            public static readonly Type Type = typeof(Test.Voucher);
+            public const string PropName_LedgerEntries = nameof(Test.Voucher.LedgerEntries);
+            public const string DefaultXmlName_LedgerEntries = ""LedgerEntries"";
+        }
+
+        public  void ReadFromXml(XElement element, XmlSerializationOptions? options = null)
+        {
+            if (LedgerEntries == null) LedgerEntries = new();
+            foreach (var child in element.Elements())
+            {
+                switch (child.Name.LocalName)
+                {
+                    case ""ALLLEDGERENTRIES.LIST"":
+                        var item0 = new global::Test.AllLedgerEntry();
+                        item0 = ReflectionHelper.Deserialize<global::Test.AllLedgerEntry>(child, options);
+                        LedgerEntries.Add(item0);
+                        break;
+                    case ""LEDGERENTRIES.LIST"":
+                        var item1 = new global::Test.LedgerEntry();
+                        item1 = ReflectionHelper.Deserialize<global::Test.LedgerEntry>(child, options);
+                        LedgerEntries.Add(item1);
+                        break;
+                }
+            }
+        }
+
+        [global::System.ComponentModel.Browsable(false)]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
+        public string DefaultXmlRootElementName => ""Voucher"";
+        public  XElement WriteToXml(XmlSerializationOptions? options = null)
+        {
+            var element = new XElement(DefaultXmlRootElementName);
+            if (LedgerEntries != null)
+            {
+                foreach (var item in LedgerEntries)
+                {
+                    switch (item)
+                    {
+                        case global::Test.AllLedgerEntry typedItem0:
+                        {
+                            var child = ReflectionHelper.Serialize(typedItem0, options, ""ALLLEDGERENTRIES.LIST"");
+                            if (child != null) element.Add(child);
+                            break;
+                        }
+                        case global::Test.LedgerEntry typedItem1:
+                        {
+                            var child = ReflectionHelper.Serialize(typedItem1, options, ""LEDGERENTRIES.LIST"");
+                            if (child != null) element.Add(child);
+                            break;
+                        }
+                    }
+                }
+            }
+            return element;
+        }
+    }
+}";
+
+        GeneratorOutputHelper.VerifyGeneratedCode(source, expectedCode, "Voucher");
+    }
+
+    [Fact]
+    public void ModelWithPropertyShadowing_GeneratesExpectedCode()
+    {
+        var source = @"
+using System.Collections.Generic;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public class BaseLedgerEntry {}
+
+    public class BaseVoucher
+    {
+        public int Id { get; set; }
+        public List<string> LedgerEntries { get; set; }
+    }
+
+    [XmlAutoGenerated]
+    public partial class Voucher : BaseVoucher
+    {
+        [XmlIgnore]
+        public new int Id { get; set; }
+
+        [XmlElement(ElementName = ""ALLLEDGERENTRIES.LIST"", Type = typeof(AllLedgerEntry))]
+        [XmlElement(ElementName = ""LEDGERENTRIES.LIST"", Type = typeof(LedgerEntry))]
+        public new List<BaseLedgerEntry> LedgerEntries { get; set; }
+    }
+
+    [XmlAutoGenerated]
+    public partial class AllLedgerEntry : BaseLedgerEntry {}
+
+    [XmlAutoGenerated]
+    public partial class LedgerEntry : BaseLedgerEntry {}
+}";
+
+        var expectedCode = @"using System;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using System.Globalization;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public partial class Voucher : IXmlStreamable
+    {
+        private static class XmlTypeInfo
+        {
+            public static readonly Type Type = typeof(Test.Voucher);
+            public const string PropName_Id = nameof(Test.Voucher.Id);
+            public const string DefaultXmlName_Id = ""Id"";
+            public const string PropName_LedgerEntries = nameof(Test.Voucher.LedgerEntries);
+            public const string DefaultXmlName_LedgerEntries = ""LedgerEntries"";
+        }
+
+        public  void ReadFromXml(XElement element, XmlSerializationOptions? options = null)
+        {
+            if (LedgerEntries == null) LedgerEntries = new();
+            foreach (var child in element.Elements())
+            {
+                switch (child.Name.LocalName)
+                {
+                    case ""ALLLEDGERENTRIES.LIST"":
+                        var item0 = new global::Test.AllLedgerEntry();
+                        item0 = ReflectionHelper.Deserialize<global::Test.AllLedgerEntry>(child, options);
+                        LedgerEntries.Add(item0);
+                        break;
+                    case ""LEDGERENTRIES.LIST"":
+                        var item1 = new global::Test.LedgerEntry();
+                        item1 = ReflectionHelper.Deserialize<global::Test.LedgerEntry>(child, options);
+                        LedgerEntries.Add(item1);
+                        break;
+                }
+            }
+        }
+
+        [global::System.ComponentModel.Browsable(false)]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
+        public string DefaultXmlRootElementName => ""Voucher"";
+        public  XElement WriteToXml(XmlSerializationOptions? options = null)
+        {
+            var element = new XElement(DefaultXmlRootElementName);
+            if (LedgerEntries != null)
+            {
+                foreach (var item in LedgerEntries)
+                {
+                    switch (item)
+                    {
+                        case global::Test.AllLedgerEntry typedItem0:
+                        {
+                            var child = ReflectionHelper.Serialize(typedItem0, options, ""ALLLEDGERENTRIES.LIST"");
+                            if (child != null) element.Add(child);
+                            break;
+                        }
+                        case global::Test.LedgerEntry typedItem1:
+                        {
+                            var child = ReflectionHelper.Serialize(typedItem1, options, ""LEDGERENTRIES.LIST"");
+                            if (child != null) element.Add(child);
+                            break;
+                        }
+                    }
+                }
+            }
+            return element;
+        }
+    }
+}";
+
+        GeneratorOutputHelper.VerifyGeneratedCode(source, expectedCode, "Voucher");
+    }
+
+    [Fact]
+    public void NestedModel_GeneratesExpectedCode()
+    {
+        var source = @"
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public partial class Parent
+    {
+        [XmlAutoGenerated]
+        public partial class NestedChild
+        {
+            public string Name { get; set; }
+        }
+    }
+}";
+
+        var expectedCode = @"using System;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using System.Globalization;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    partial class Parent
+    {
+        public partial class NestedChild : IXmlStreamable
+        {
+            private static class XmlTypeInfo
+            {
+                public static readonly Type Type = typeof(Test.Parent.NestedChild);
+                public const string PropName_Name = nameof(Test.Parent.NestedChild.Name);
+                public const string DefaultXmlName_Name = ""Name"";
+            }
+
+            public  void ReadFromXml(XElement element, XmlSerializationOptions? options = null)
+            {
+                var xmlName_Name = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_Name) ?? XmlTypeInfo.DefaultXmlName_Name;
+                var elem_Name = element.Element(xmlName_Name);
+                if (elem_Name != null)
+                {
+                    Name = elem_Name.Value;
+                }
+            }
+
+            [global::System.ComponentModel.Browsable(false)]
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
+            public string DefaultXmlRootElementName => ""NestedChild"";
+            public  XElement WriteToXml(XmlSerializationOptions? options = null)
+            {
+                var element = new XElement(DefaultXmlRootElementName);
+                var xmlName_Name = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_Name) ?? XmlTypeInfo.DefaultXmlName_Name;
+                if (Name != null)
+                {
+                    element.Add(new XElement(xmlName_Name, Name));
+                }
+                return element;
+            }
+        }
+    }
+}";
+
+        GeneratorOutputHelper.VerifyGeneratedCode(source, expectedCode, "NestedChild");
+    }
+
+    [Fact]
+    public void ModelWithNewAttributeSyntax_GeneratesExpectedCode()
+    {
+        var source = @"
+using System.Collections.Generic;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public class LedgerEntry {}
+
+    [XmlRoot(ElementName = ""ENVELOPE"", Namespace = ""http://example.com"")]
+    [XmlAutoGenerated]
+    public partial class Envelope
+    {
+        [XmlAttribute(AttributeName = ""version"")]
+        public string Version { get; set; }
+
+        [XmlElement(ElementName = ""LEDGERENTRIES.LIST"", Type = typeof(LedgerEntry), Order = 2)]
+        public List<LedgerEntry> LedgerEntries { get; set; }
+
+        [XmlElement(ElementName = ""HEADER"", Order = 1)]
+        public string Header { get; set; }
+    }
+}";
+
+        var expectedCode = @"using System;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using System.Globalization;
+using XmlSourceGenerator.Abstractions;
+
+namespace Test
+{
+    public partial class Envelope : IXmlStreamable
+    {
+        private static class XmlTypeInfo
+        {
+            public static readonly Type Type = typeof(Test.Envelope);
+            public const string PropName_Version = nameof(Test.Envelope.Version);
+            public const string DefaultXmlName_Version = ""Version"";
+            public const string PropName_LedgerEntries = nameof(Test.Envelope.LedgerEntries);
+            public const string DefaultXmlName_LedgerEntries = ""LedgerEntries"";
+            public const string PropName_Header = nameof(Test.Envelope.Header);
+            public const string DefaultXmlName_Header = ""Header"";
+            public static readonly XNamespace Namespace0 = XNamespace.Get(""http://example.com"");
+        }
+
+        public  void ReadFromXml(XElement element, XmlSerializationOptions? options = null)
+        {
+            var attr_Version = element.Attribute(""version"");
+            if (attr_Version != null)
+            {
+                Version = attr_Version.Value;
+            }
+            if (LedgerEntries == null) LedgerEntries = new();
+            foreach (var child in element.Elements())
+            {
+                switch (child.Name.LocalName)
+                {
+                    case ""LEDGERENTRIES.LIST"":
+                        var item0 = new global::Test.LedgerEntry();
+                        item0 = ReflectionHelper.Deserialize<global::Test.LedgerEntry>(child, options);
+                        LedgerEntries.Add(item0);
+                        break;
+                }
+            }
+            string xmlName_Header = ""HEADER"";
+            if (options != null && options.PreferOptionsOverAttributes)
+            {
+                var override_Header = options.GetOverride(typeof(Envelope), ""Header"");
+                if (!string.IsNullOrEmpty(override_Header)) xmlName_Header = override_Header;
+            }
+            var elem_Header = element.Element(xmlName_Header);
+            if (elem_Header != null)
+            {
+                Header = elem_Header.Value;
+            }
+        }
+
+        [global::System.ComponentModel.Browsable(false)]
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
+        public string DefaultXmlRootElementName => ""ENVELOPE"";
+        public  XElement WriteToXml(XmlSerializationOptions? options = null)
+        {
+            XNamespace rootNs = ""http://example.com"";
+            var element = new XElement(rootNs + DefaultXmlRootElementName);
+            string xmlName_Header = ""HEADER"";
+            if (options != null && options.PreferOptionsOverAttributes)
+            {
+                var override_Header = options.GetOverride(typeof(Envelope), ""Header"");
+                if (!string.IsNullOrEmpty(override_Header)) xmlName_Header = override_Header;
+            }
+            if (Header != null)
+            {
+                element.Add(new XElement(xmlName_Header, Header));
+            }
+            if (LedgerEntries != null)
+            {
+                foreach (var item in LedgerEntries)
+                {
+                    switch (item)
+                    {
+                        case global::Test.LedgerEntry typedItem0:
+                        {
+                            var child = ReflectionHelper.Serialize(typedItem0, options, ""LEDGERENTRIES.LIST"");
+                            if (child != null) element.Add(child);
+                            break;
+                        }
+                    }
+                }
+            }
+            if (Version != null) element.Add(new XAttribute(""version"", Version));
+            return element;
+        }
+    }
+}";
+
+        GeneratorOutputHelper.VerifyGeneratedCode(source, expectedCode, "Envelope");
     }
 }

@@ -1,28 +1,32 @@
 using Microsoft.CodeAnalysis;
 using XmlSourceGenerator.Helpers;
+using XmlSourceGenerator.Models;
 
 namespace XmlSourceGenerator.Generators
 {
     /// <summary>
     /// Generates property read/write code for individual properties.
     /// </summary>
-    internal class XmlPropertyGenerator
+    public class XmlPropertyGenerator
     {
         private readonly IndentedStringBuilder _sb;
-        private readonly Compilation _compilation;
-
-        public XmlPropertyGenerator(IndentedStringBuilder sb, Compilation compilation)
+        public XmlPropertyGenerator(IndentedStringBuilder sb)
         {
             _sb = sb;
-            _compilation = compilation;
+            //_compilation = compilation;
         }
 
-        public void GenerateStandardPropertyRead(PropertyInfo info, INamedTypeSymbol classSymbol)
+        private bool ImplementsIXmlStreamable(ITypeSymbol type)
+        {
+            return type.AllInterfaces.Any(i => i.Name == "IXmlStreamable" && i.ContainingNamespace.ToString() == "XmlSourceGenerator.Abstractions");
+        }
+
+        public void GenerateStandardPropertyRead(GeneratorPropertyModel info, string className)
         {
             string propName = info.Name;
             string typeName = info.TypeName;
 
-            string? ns = XmlNamespaceHelper.GetNamespace(info.Symbol);
+            string? ns = info.Namespace;
 
             // Determine source (Attribute, InnerText, or Element)
             if (info.SerializeAsInnerText)
@@ -61,7 +65,7 @@ namespace XmlSourceGenerator.Generators
                     _sb.AppendLine("{");
                     using (_sb.Indent())
                     {
-                        _sb.AppendLine($"var override_{propName} = options.GetOverride(typeof({classSymbol.Name}), \"{propName}\");");
+                        _sb.AppendLine($"var override_{propName} = options.GetOverride(typeof({className}), \"{propName}\");");
                         _sb.AppendLine($"if (!string.IsNullOrEmpty(override_{propName})) {xmlNameVar} = override_{propName};");
                     }
                     _sb.AppendLine("}");
@@ -80,10 +84,10 @@ namespace XmlSourceGenerator.Generators
                     _sb.AppendLine($"var elem_{propName} = element.Element({xmlNameVar});");
                 }
 
-                if (info.PropertyKind == PropertyKind.ComplexObject)
+                if (info.TypeInfo.Kind == PropertyKind.ComplexObject)
                 {
                     // Check for polymorphic overrides for reading
-                    _sb.AppendLine($"var polyMappings_{propName} = options?.GetPolymorphicMappings(typeof({classSymbol.Name}), \"{propName}\");");
+                    _sb.AppendLine($"var polyMappings_{propName} = options?.GetPolymorphicMappings(typeof({className}), \"{propName}\");");
                     _sb.AppendLine($"if (options != null && options.PreferOptionsOverAttributes && polyMappings_{propName} != null)");
                     _sb.AppendLine("{");
                     using (_sb.Indent())
@@ -107,7 +111,14 @@ namespace XmlSourceGenerator.Generators
                             {
                                 // Instantiate type dynamically
                                 _sb.AppendLine($"{propName} = ({typeName})Activator.CreateInstance(mapping.Type);");
-                                _sb.AppendLine($"if ({propName} is IXmlStreamable streamable_{propName}) streamable_{propName}.ReadFromXml(polyElem_{propName}, options);");
+                                _sb.AppendLine($"if ({propName} is IXmlStreamable streamable_{propName})");
+                                _sb.AppendLine("{");
+                                _sb.AppendLine($"    streamable_{propName}.ReadFromXml(polyElem_{propName}, options);");
+                                _sb.AppendLine("}");
+                                _sb.AppendLine("else");
+                                _sb.AppendLine("{");
+                                _sb.AppendLine($"    ReflectionHelper.Populate({propName}, polyElem_{propName}, options);"); 
+                                _sb.AppendLine("}");
                                 _sb.AppendLine("break;");
                             }
                             _sb.AppendLine("}");
@@ -123,12 +134,29 @@ namespace XmlSourceGenerator.Generators
                         _sb.AppendLine("{");
                         using (_sb.Indent())
                         {
-                            _sb.AppendLine($"{propName} = new {typeName}();");
-                            _sb.AppendLine($"if ({propName} is IXmlStreamable streamable_{propName}) streamable_{propName}.ReadFromXml(elem_{propName}, options);");
+                            if (info.TypeInfo.ImplementsIXmlStreamable)
+                            {
+                                _sb.AppendLine($"{propName} = new {typeName}();");
+                                _sb.AppendLine($"if ({propName} is IXmlStreamable streamable_{propName}) streamable_{propName}.ReadFromXml(elem_{propName}, options);");
+                            }
+                            else
+                            {
+                                _sb.AppendLine($"{propName} = ReflectionHelper.Deserialize<{typeName}>(elem_{propName}, options);");
+                            }
                         }
                         _sb.AppendLine("}");
                     }
                     _sb.AppendLine("}");
+                }
+                else if (info.TypeInfo.Kind == PropertyKind.XElement)
+                {
+                     _sb.AppendLine($"if (elem_{propName} != null)");
+                     _sb.AppendLine("{");
+                     using (_sb.Indent())
+                     {
+                         _sb.AppendLine($"{propName} = elem_{propName};");
+                     }
+                     _sb.AppendLine("}");
                 }
                 else
                 {
@@ -143,21 +171,21 @@ namespace XmlSourceGenerator.Generators
             }
         }
 
-        public void GenerateStandardPropertyWrite(PropertyInfo info, INamedTypeSymbol classSymbol)
+        public void GenerateStandardPropertyWrite(GeneratorPropertyModel info, string className)
         {
             string propName = info.Name;
 
             // Value formatting
             string valueExpression = propName;
-            if (info.PropertyKind == PropertyKind.DateTime && info.Formats != null && info.Formats.Length > 0)
+            if (info.TypeInfo.Kind == PropertyKind.DateTime && info.Formats != null && info.Formats.Length > 0)
             {
                 // Use first format for writing
                 valueExpression = $"{propName}.ToString(\"{info.Formats[0]}\", CultureInfo.InvariantCulture)";
             }
 
-            bool isReferenceOrNullable = info.Type.IsReferenceType || info.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+            bool isReferenceOrNullable = info.TypeInfo.IsReferenceType || info.IsNullable == true;
 
-            string? ns = XmlNamespaceHelper.GetNamespace(info.Symbol);
+            string? ns = info.Namespace;
 
             if (info.SerializeAsInnerText)
             {
@@ -190,7 +218,7 @@ namespace XmlSourceGenerator.Generators
                     _sb.AppendLine("{");
                     using (_sb.Indent())
                     {
-                        _sb.AppendLine($"var override_{propName} = options.GetOverride(typeof({classSymbol.Name}), \"{propName}\");");
+                        _sb.AppendLine($"var override_{propName} = options.GetOverride(typeof({className}), \"{propName}\");");
                         _sb.AppendLine($"if (!string.IsNullOrEmpty(override_{propName})) {xmlNameVar} = override_{propName};");
                     }
                     _sb.AppendLine("}");
@@ -211,7 +239,7 @@ namespace XmlSourceGenerator.Generators
                     elementCreation = $"new XElement({xmlNameVar}, {valueExpression})";
                 }
 
-                if (info.PropertyKind == PropertyKind.Primitive || info.PropertyKind == PropertyKind.DateTime || info.PropertyKind == PropertyKind.Nullable)
+                if (info.TypeInfo.Kind == PropertyKind.Primitive || info.TypeInfo.Kind == PropertyKind.DateTime)
                 {
                     if (isReferenceOrNullable)
                     {
@@ -224,7 +252,7 @@ namespace XmlSourceGenerator.Generators
                         _sb.AppendLine("}");
                         if (info.IsNullable == true)
                         {
-                            _sb.AppendLine("else");
+                            _sb.AppendLine("else if (options?.IgnoreNullValues != true)");
                             _sb.AppendLine("{");
                             using (_sb.Indent())
                             {
@@ -246,31 +274,92 @@ namespace XmlSourceGenerator.Generators
                     else
                         _sb.AppendLine($"element.Add({elementCreation});");
                 }
-                else if (info.PropertyKind == PropertyKind.Enum)
+                else if (info.TypeInfo.Kind == PropertyKind.Enum)
                 {
                     // Generate switch for enum write
-                    _sb.AppendLine($"string enumValue_{propName} = {propName}.ToString();");
-
-                    var enumMap = EnumHelper.GetEnumMap(info.Type);
-                    if (enumMap.Any(kvp => kvp.Key != kvp.Value))
+                    // If nullable, we need to handle value access
+                    string valAccess = isReferenceOrNullable ? $"{propName}.Value" : propName;
+                    
+                    // Note: If nullable, we only reach here if propName != null (checked above if we wrap it similarly? Wait, enum logic below didn't have null check wrapper yet for value access in switch?)
+                    // The standard block above handles Primitive/DateTime null checks. Enum was separate.
+                    // We need to wrap Enum in null check if nullable.
+                    
+                    if (isReferenceOrNullable)
                     {
-                        _sb.AppendLine($"switch ({propName})");
-                        _sb.AppendLine("{");
-                        using (_sb.Indent())
-                        {
-                            foreach (var kvp in enumMap)
-                            {
-                                _sb.AppendLine($"case {info.TypeName}.{kvp.Key}: enumValue_{propName} = \"{kvp.Value}\"; break;");
-                            }
-                        }
-                        _sb.AppendLine("}");
+                         _sb.AppendLine($"if ({propName} != null)");
+                         _sb.AppendLine("{");
                     }
 
-                    string enumElementCreation = ns != null
-                        ? $"new XElement(ns_{propName} + {xmlNameVar}, enumValue_{propName})"
-                        : $"new XElement({xmlNameVar}, enumValue_{propName})";
-
-                    _sb.AppendLine($"element.Add({enumElementCreation});");
+                    using (isReferenceOrNullable ? _sb.Indent() : null)
+                    {
+                        _sb.AppendLine($"string enumValue_{propName} = {valAccess}.ToString();");
+    
+                        var enumMap = info.TypeInfo.EnumMapping;
+                        if (enumMap.Any(kvp => kvp.Key != kvp.Value))
+                        {
+                            _sb.AppendLine($"switch ({valAccess})");
+                            _sb.AppendLine("{");
+                            using (_sb.Indent())
+                            {
+                                foreach (var kvp in enumMap)
+                                {
+                                    _sb.AppendLine($"case {info.TypeInfo.FullName}.{kvp.Key}: enumValue_{propName} = \"{kvp.Value}\"; break;");
+                                }
+                            }
+                            _sb.AppendLine("}");
+                        }
+    
+                        string enumElementCreation = ns != null
+                            ? $"new XElement(ns_{propName} + {xmlNameVar}, enumValue_{propName})"
+                            : $"new XElement({xmlNameVar}, enumValue_{propName})";
+    
+                        _sb.AppendLine($"element.Add({enumElementCreation});");
+                    }
+                    
+                    if (isReferenceOrNullable)
+                    {
+                        _sb.AppendLine("}");
+                        // Add nil element if needed?
+                        if (info.IsNullable == true)
+                        {
+                            _sb.AppendLine("else");
+                            _sb.AppendLine("{");
+                            using (_sb.Indent())
+                            {
+                                if (ns != null)
+                                {
+                                    _sb.AppendLine($"var nilElement = new XElement(ns_{propName} + {xmlNameVar});");
+                                }
+                                else
+                                {
+                                    _sb.AppendLine($"var nilElement = new XElement({xmlNameVar});");
+                                }
+                                _sb.AppendLine("nilElement.Add(new XAttribute(XNamespace.Get(\"http://www.w3.org/2001/XMLSchema-instance\") + \"nil\", \"true\"));");
+                                _sb.AppendLine("element.Add(nilElement);");
+                            }
+                            _sb.AppendLine("}");
+                        }
+                    }
+                }
+                
+                else if (info.TypeInfo.Kind == PropertyKind.XElement)
+                {
+                    _sb.AppendLine($"if ({propName} != null)");
+                    _sb.AppendLine("{");
+                    using (_sb.Indent())
+                    {
+                        if (ns != null)
+                        {
+                             _sb.AppendLine($"{propName}.Name = XNamespace.Get(\"{ns}\") + {xmlNameVar};");
+                             _sb.AppendLine($"element.Add({propName});");
+                        }
+                        else
+                        {
+                             _sb.AppendLine($"{propName}.Name = {xmlNameVar};");
+                             _sb.AppendLine($"element.Add({propName});");
+                        }
+                    }
+                     _sb.AppendLine("}");
                 }
                 else
                 {
@@ -280,7 +369,7 @@ namespace XmlSourceGenerator.Generators
                     using (_sb.Indent())
                     {
                         // Check for polymorphic overrides
-                        _sb.AppendLine($"var polyMappings_{propName} = options?.GetPolymorphicMappings(typeof({classSymbol.Name}), \"{propName}\");");
+                        _sb.AppendLine($"var polyMappings_{propName} = options?.GetPolymorphicMappings(typeof({className}), \"{propName}\");");
                         _sb.AppendLine($"if (options != null && options.PreferOptionsOverAttributes && polyMappings_{propName} != null)");
                         _sb.AppendLine("{");
                         using (_sb.Indent())
@@ -295,6 +384,10 @@ namespace XmlSourceGenerator.Generators
                                 using (_sb.Indent())
                                 {
                                     _sb.AppendLine($"var child_{propName} = (({propName} as IXmlStreamable)?.WriteToXml(options));");
+                                    _sb.AppendLine($"if (child_{propName} == null)");
+                                    _sb.AppendLine("{");
+                                    _sb.AppendLine($"    child_{propName} = ReflectionHelper.Serialize({propName}, options, mapping.Name);");
+                                    _sb.AppendLine("}");
                                     _sb.AppendLine($"if (child_{propName} != null)");
                                     _sb.AppendLine("{");
                                     using (_sb.Indent())
@@ -323,7 +416,7 @@ namespace XmlSourceGenerator.Generators
                             _sb.AppendLine("{");
                             using (_sb.Indent())
                             {
-                                GenerateStandardComplexWrite(propName, xmlNameVar, ns);
+                                GenerateStandardComplexWrite(propName, xmlNameVar, ns, info);
                             }
                             _sb.AppendLine("}");
                         }
@@ -332,7 +425,7 @@ namespace XmlSourceGenerator.Generators
                         _sb.AppendLine("{");
                         using (_sb.Indent())
                         {
-                            GenerateStandardComplexWrite(propName, xmlNameVar, ns);
+                            GenerateStandardComplexWrite(propName, xmlNameVar, ns, info);
                         }
                         _sb.AppendLine("}");
                     }
@@ -342,46 +435,63 @@ namespace XmlSourceGenerator.Generators
         }
 
 
-        private void GenerateStandardComplexWrite(string propName, string xmlNameVar, string? ns)
+        private void GenerateStandardComplexWrite(string propName, string xmlNameVar, string? ns, GeneratorPropertyModel info)
         {
-            _sb.AppendLine($"if ({propName} is IXmlStreamable streamable_{propName})");
-            _sb.AppendLine("{");
-            using (_sb.Indent())
+            if (info.TypeInfo.ImplementsIXmlStreamable)
             {
-                _sb.AppendLine($"var child_{propName} = streamable_{propName}.WriteToXml(options);");
+                _sb.AppendLine($"if ({propName} is IXmlStreamable streamable_{propName})");
+                _sb.AppendLine("{");
+                using (_sb.Indent())
+                {
+                    _sb.AppendLine($"var child_{propName} = streamable_{propName}.WriteToXml(options);");
+                    if (ns != null)
+                    {
+                        _sb.AppendLine($"child_{propName}.Name = ns_{propName} + {xmlNameVar};");
+                    }
+                    else
+                    {
+                        _sb.AppendLine($"child_{propName}.Name = {xmlNameVar};");
+                    }
+                    _sb.AppendLine($"element.Add(child_{propName});");
+                }
+                _sb.AppendLine("}");
+            }
+            else
+            {
+                _sb.AppendLine($"var child_{propName} = ReflectionHelper.Serialize({propName}, options, {xmlNameVar});");
                 if (ns != null)
                 {
-                    _sb.AppendLine($"child_{propName}.Name = ns_{propName} + {xmlNameVar};");
+                     _sb.AppendLine($"if (child_{propName} != null) child_{propName}.Name = ns_{propName} + {xmlNameVar};");
                 }
-                else
-                {
-                    _sb.AppendLine($"child_{propName}.Name = {xmlNameVar};");
-                }
-                _sb.AppendLine($"element.Add(child_{propName});");
+                _sb.AppendLine($"if (child_{propName} != null) element.Add(child_{propName});");
             }
-            _sb.AppendLine("}");
         }
 
-        private void GenerateValueRead(PropertyInfo info, string sourceVariable)
+        private void GenerateValueRead(GeneratorPropertyModel info, string sourceVariable)
         {
             string propName = info.Name;
             string typeName = info.TypeName;
-
-            if (info.PropertyKind == PropertyKind.Primitive || info.PropertyKind == PropertyKind.Nullable)
+           // _sb.AppendLine($"//{propName} = {info.PropertyKind};");
+            if (info.TypeInfo.Kind == PropertyKind.Primitive)
             {
-                if (info.Type.SpecialType == SpecialType.System_String)
+                if (info.TypeInfo.IsString)
                 {
                     _sb.AppendLine($"{propName} = {sourceVariable}.Value;");
                 }
                 else
                 {
+                    // For nullable primitives, explicit cast (int?)element works if strictly element, 
+                    // but sourceVariable might be attribute too. XAttribute explicit cast works too.
                     _sb.AppendLine($"{propName} = ({typeName}){sourceVariable};");
                 }
             }
-            else if (info.PropertyKind == PropertyKind.Enum)
+            else if (info.TypeInfo.Kind == PropertyKind.Enum)
             {
                 // Generate switch for enum read
-                var reverseMap = EnumHelper.GetReverseEnumMap(info.Type);
+                // Invert map
+                var reverseMap = info.TypeInfo.EnumMapping.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+                string underlyingTypeName = info.TypeInfo.FullName;
+                
                 if (reverseMap.Any(kvp => kvp.Key != kvp.Value))
                 {
                     _sb.AppendLine($"switch ({sourceVariable}.Value)");
@@ -390,20 +500,21 @@ namespace XmlSourceGenerator.Generators
                     {
                         foreach (var kvp in reverseMap)
                         {
-                            _sb.AppendLine($"case \"{kvp.Key}\": {propName} = {info.TypeName}.{kvp.Value}; break;");
+                            _sb.AppendLine($"case \"{kvp.Key}\": {propName} = {underlyingTypeName}.{kvp.Value}; break;");
                         }
-                        _sb.AppendLine($"default: {propName} = ({typeName})Enum.Parse(typeof({typeName}), {sourceVariable}.Value); break;");
+                        _sb.AppendLine($"default: {propName} = ({typeName})Enum.Parse(typeof({underlyingTypeName}), {sourceVariable}.Value); break;");
                     }
                     _sb.AppendLine("}");
                 }
                 else
                 {
-                    _sb.AppendLine($"{propName} = ({typeName})Enum.Parse(typeof({typeName}), {sourceVariable}.Value);");
+                    _sb.AppendLine($"{propName} = ({typeName})Enum.Parse(typeof({underlyingTypeName}), {sourceVariable}.Value);");
                 }
             }
-            else if (info.PropertyKind == PropertyKind.DateTime)
+            else if (info.TypeInfo.Kind == PropertyKind.DateTime)
             {
                 string valueSource = $"{sourceVariable}.Value";
+                string underlyingTypeName = info.TypeInfo.FullName;
 
                 if (info.Formats != null && info.Formats.Length > 0)
                 {
@@ -411,13 +522,13 @@ namespace XmlSourceGenerator.Generators
                     _sb.AppendLine("{");
                     using (_sb.Indent())
                     {
-                        _sb.AppendLine($"{typeName} result_{propName};");
+                        _sb.AppendLine($"{underlyingTypeName} result_{propName};");
                         var formats = string.Join(", ", info.Formats.Select(f => $"\"{f}\""));
                         _sb.AppendLine($"string[] formats_{propName} = {{ {formats} }};");
 
                         string parseMethod = "TryParseExact";
 
-                        _sb.AppendLine($"if ({typeName}.{parseMethod}({valueSource}, formats_{propName}, CultureInfo.InvariantCulture, DateTimeStyles.None, out result_{propName}))");
+                        _sb.AppendLine($"if ({underlyingTypeName}.{parseMethod}({valueSource}, formats_{propName}, CultureInfo.InvariantCulture, DateTimeStyles.None, out result_{propName}))");
                         _sb.AppendLine("{");
                         _sb.AppendLine($"    {propName} = result_{propName};");
                         _sb.AppendLine("}");
@@ -426,7 +537,7 @@ namespace XmlSourceGenerator.Generators
                 }
                 else
                 {
-                    _sb.AppendLine($"{propName} = {typeName}.Parse({valueSource}, CultureInfo.InvariantCulture);");
+                    _sb.AppendLine($"{propName} = {underlyingTypeName}.Parse({valueSource}, CultureInfo.InvariantCulture);");
                 }
             }
         }

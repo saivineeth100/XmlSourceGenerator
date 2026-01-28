@@ -9,9 +9,9 @@
     <!-- Source Generator Specific Settings -->
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-    <DevelopmentDependency>true</DevelopmentDependency>
+    <!-- <DevelopmentDependency>true</DevelopmentDependency> -->
   </PropertyGroup>
 
   <ItemGroup>
@@ -43,7 +43,7 @@
 
   <Target Name="IncludeAbstractionsInPackage">
     <ItemGroup>
-      <BuildOutputInPackage Include="$(OutputPath)..\XmlSourceGenerator.Abstractions\netstandard2.0\XmlSourceGenerator.Abstractions.dll" />
+      <BuildOutputInPackage Include="..\XmlSourceGenerator.Abstractions\bin\$(Configuration)\netstandard2.0\XmlSourceGenerator.Abstractions.dll" />
     </ItemGroup>
   </Target>
 

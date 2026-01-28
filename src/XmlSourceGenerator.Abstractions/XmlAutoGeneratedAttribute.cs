@@ -55,8 +55,15 @@ namespace XmlSourceGenerator.Abstractions
     [AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
     public class XmlElementAttribute : Attribute
     {
-        public string ElementName { get; }
+        public string? ElementName { get; set; }
         public string? Namespace { get; set; }
+        public Type? Type { get; set; }
+        public bool IsNullable { get; set; }
+        public int Order { get; set; } = -1;
+
+        public XmlElementAttribute()
+        {
+        }
 
         public XmlElementAttribute(string elementName)
         {
@@ -70,7 +77,12 @@ namespace XmlSourceGenerator.Abstractions
     [AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
     public class XmlAttributeAttribute : Attribute
     {
-        public string? AttributeName { get; }
+        public string? AttributeName { get; set; }
+        public string? Namespace { get; set; }
+
+        public XmlAttributeAttribute()
+        {
+        }
 
         public XmlAttributeAttribute(string? attributeName = null)
         {
@@ -84,8 +96,13 @@ namespace XmlSourceGenerator.Abstractions
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public class XmlRootAttribute : Attribute
     {
-        public string ElementName { get; }
+        public string? ElementName { get; set; }
         public string? Namespace { get; set; }
+        public bool IsNullable { get; set; }
+
+        public XmlRootAttribute()
+        {
+        }
 
         public XmlRootAttribute(string elementName)
         {
@@ -108,7 +125,14 @@ namespace XmlSourceGenerator.Abstractions
     [AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
     public class XmlArrayAttribute : Attribute
     {
-        public string ElementName { get; }
+        public string? ElementName { get; set; }
+        public string? Namespace { get; set; }
+        public bool IsNullable { get; set; }
+        public int Order { get; set; } = -1;
+
+        public XmlArrayAttribute()
+        {
+        }
 
         public XmlArrayAttribute(string elementName)
         {
@@ -122,7 +146,14 @@ namespace XmlSourceGenerator.Abstractions
     [AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
     public class XmlArrayItemAttribute : Attribute
     {
-        public string ElementName { get; }
+        public string? ElementName { get; set; }
+        public string? Namespace { get; set; }
+        public Type? Type { get; set; }
+        public bool IsNullable { get; set; }
+
+        public XmlArrayItemAttribute()
+        {
+        }
 
         public XmlArrayItemAttribute(string elementName)
         {
@@ -138,7 +169,7 @@ namespace XmlSourceGenerator.Abstractions
     {
         public string? Name { get; set; }
         public string? Namespace { get; set; }
-        public int Order { get; set; }
+        public int Order { get; set; } = -1;
         
         public XmlAnyElementAttribute(string? name = null)
         {

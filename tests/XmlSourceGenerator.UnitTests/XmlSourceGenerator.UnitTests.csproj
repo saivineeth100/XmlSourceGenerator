@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing.XUnit" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
@@ -19,10 +21,11 @@
     </PackageReference>
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\XmlSourceGenerator\XmlSourceGenerator.csproj" />
+    <ProjectReference Include="..\..\src\XmlSourceGenerator\XmlSourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
     <ProjectReference Include="..\..\src\XmlSourceGenerator.Abstractions\XmlSourceGenerator.Abstractions.csproj" />
   </ItemGroup>
 

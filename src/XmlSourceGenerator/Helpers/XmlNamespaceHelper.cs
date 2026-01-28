@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 
 namespace XmlSourceGenerator.Helpers
 {
-    internal static class XmlNamespaceHelper
+    public static class XmlNamespaceHelper
     {
         public static string? GetNamespace(ISymbol symbol)
         {

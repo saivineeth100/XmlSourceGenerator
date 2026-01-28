@@ -13,7 +13,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>xml;serialization;source-generator;roslyn;performance</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>icon.png</PackageIcon>
+
     
     <!-- Versioning -->
     <VersionPrefix>1.0.0</VersionPrefix>

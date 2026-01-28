@@ -10,12 +10,18 @@ namespace XmlSourceGenerator.Abstractions
         /// Default is false (minified).
         /// </summary>
         public bool WriteIndented { get; set; } = false;
+        
+        /// <summary>
+        /// Gets or sets the encoding to use for XML output.
+        /// Default is UTF-8 if null.
+        /// </summary>
+        public System.Text.Encoding? Encoding { get; set; }
 
         /// <summary>
         /// Gets or sets the naming policy used to convert property names to XML element names.
         /// If null, property names are used as-is.
         /// </summary>
-        public XmlNamingPolicy PropertyNamingPolicy { get; set; }
+        public XmlNamingPolicy? PropertyNamingPolicy { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether options should take precedence over attributes.
@@ -23,6 +29,20 @@ namespace XmlSourceGenerator.Abstractions
         /// Default is false.
         /// </summary>
         public bool PreferOptionsOverAttributes { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether parsing errors should be ignored.
+        /// If true, items with invalid XML or type conversion errors will be skipped.
+        /// Default is false.
+        /// </summary>
+        public bool IgnoreParsingErrors { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether null values should be ignored.
+        /// If true, nullable properties with null values will be omitted from the XML.
+        /// If false (default), they may be emitted with xsi:nil="true".
+        /// </summary>
+        public bool IgnoreNullValues { get; set; } = false;
 
         /// <summary>
         /// Dictionary of specific property settings.

@@ -45,7 +45,7 @@ public class PropertyHelpersTests
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
 
         // Act
-        var properties = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray();
+        var properties = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray();
 
         // Assert
         properties.Should().HaveCount(1);
@@ -74,7 +74,7 @@ public class PropertyHelpersTests
         var typeSymbol = compilation.GetTypeByMetadataName("Test.DerivedClass");
 
         // Act
-        var properties = PropertyHelpers.GetAllProperties(typeSymbol!);
+        var properties = PropertyHelpers.GetAllMembers(typeSymbol!);
 
         // Assert
         properties.Should().HaveCount(2);
@@ -99,12 +99,12 @@ public class PropertyHelpersTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var properties = PropertyHelpers.GetAllProperties(typeSymbol!);
+        var properties = PropertyHelpers.GetAllMembers(typeSymbol!);
 
         // Act & Assert
         foreach (var prop in properties)
         {
-            PropertyHelpers.IsPrimitive(prop.Type).Should().BeTrue($"{prop.Type} should be primitive");
+            PropertyHelpers.IsPrimitive(((IPropertySymbol)prop).Type).Should().BeTrue($"{((IPropertySymbol)prop).Type} should be primitive");
         }
     }
 
@@ -125,10 +125,10 @@ public class PropertyHelpersTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var properties = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray();
+        var properties = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray();
 
         // Act
-        var isPrimitive = PropertyHelpers.IsPrimitive(properties[0].Type);
+        var isPrimitive = PropertyHelpers.IsPrimitive(((IPropertySymbol)properties[0]).Type);
 
         // Assert
         isPrimitive.Should().BeFalse();
@@ -149,10 +149,10 @@ public class PropertyHelpersTests
 
         var compilation = CreateCompilation(source);
         var typeSymbol = compilation.GetTypeByMetadataName("Test.MyClass");
-        var properties = PropertyHelpers.GetAllProperties(typeSymbol!).ToArray();
+        var properties = PropertyHelpers.GetAllMembers(typeSymbol!).ToArray();
 
         // Act
-        var isPrimitive = PropertyHelpers.IsPrimitive(properties[0].Type);
+        var isPrimitive = PropertyHelpers.IsPrimitive(((IPropertySymbol)properties[0]).Type);
 
         // Assert
         isPrimitive.Should().BeTrue();
