@@ -1,12 +1,7 @@
-﻿using System;
-using System.IO;
-using System.Linq;
+﻿using System.Collections.Concurrent;
 using System.Reflection;
-using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace Reproduction
 {
@@ -14,6 +9,8 @@ namespace Reproduction
     {
         public int Value { get; set; }
         public string Text { get; set; }
+        public byte Byte { get; set; }
+        public sbyte SByte { get; set; }
     }
 
     public static class Program
@@ -22,12 +19,12 @@ namespace Reproduction
         {
             try
             {
-                var items = new[] { new SimpleItem { Value = 7, Text = null } };
+                var items = new[] { new SimpleItem { Value = 7, Text = null, Byte = 255, SByte = -127 } };
                 using var stream = new MemoryStream();
 
                 Console.WriteLine("Writing to stream...");
-                await GenericXmlStreamer.WriteDataToStreamAsync(stream, items, itemName: "SimpleItem");
-                
+                await GenericXmlStreamer.WriteEnumerableDataToStreamAsync(stream, items, itemName: "SimpleItem");
+
                 Console.WriteLine("Stream Length: " + stream.Length);
                 stream.Position = 0;
                 using var reader = new StreamReader(stream, System.Text.Encoding.UTF8, leaveOpen: true);
@@ -37,7 +34,7 @@ namespace Reproduction
 
                 stream.Position = 0;
                 var xml = XDocument.Load(stream);
-                
+
                 if (xml.Root == null) Console.WriteLine("Root is null");
                 else Console.WriteLine("Root Name: " + xml.Root.Name);
 
@@ -61,7 +58,7 @@ namespace Reproduction
     }
 
     // --- PASTE DEPENDENCIES ---
-    
+
     public interface IXmlStreamable
     {
         string DefaultXmlRootElementName { get; }
@@ -73,26 +70,29 @@ namespace Reproduction
     {
         public bool WriteIndented { get; set; }
         public System.Text.Encoding Encoding { get; set; }
-         public bool IgnoreParsingErrors { get; set; }
+        public bool IgnoreParsingErrors { get; set; }
     }
 
     public static class GenericXmlStreamer
     {
-        public static async Task WriteDataToStreamAsync<T>(Stream stream, IEnumerable<T> items, XmlSerializationOptions? options = null, string rootName = "ArrayOfItems", string? itemName = null)
+        public static async Task WriteEnumerableDataToStreamAsync<T>(Stream stream, IEnumerable<T> items, XmlSerializationOptions? options = null, string rootName = "ArrayOfItems", string? itemName = null)
         {
-            string targetItemName = itemName ?? typeof(T).Name; // Simplified for repro
+            string targetItemName = GetRootName<T>(itemName);
 
-            var settings = new XmlWriterSettings 
-            { 
-                Async = true, 
+            var settings = new XmlWriterSettings
+            {
+                Async = true,
                 Indent = options?.WriteIndented ?? false,
                 Encoding = options?.Encoding ?? System.Text.Encoding.UTF8,
-                CloseOutput = false // Explicitly prevent closing stream to test if this is the fix
+                CloseOutput = false
             };
 
             using (var writer = XmlWriter.Create(stream, settings))
             {
                 await writer.WriteStartDocumentAsync();
+
+                // If rootName is null (e.g. single item write which handles its own root), handle it?
+                // WriteDataToStreamAsync(IEnumerable) implies a root container.
                 await writer.WriteStartElementAsync(null, rootName, null);
 
                 foreach (var item in items)
@@ -102,26 +102,26 @@ namespace Reproduction
 
                 await writer.WriteEndElementAsync();
                 await writer.WriteEndDocumentAsync();
-                await writer.FlushAsync(); // Ensure flush
+                await writer.FlushAsync();
             }
         }
 
         private static void WriteItem<T>(XmlWriter writer, T item, string? itemName, XmlSerializationOptions? options)
         {
-             if (item == null) return;
-             XElement el;
-             if (item is IXmlStreamable streamable)
-             {
-                 el = streamable.WriteToXml(options);
-                 if (!string.IsNullOrEmpty(itemName) && el.Name != itemName) el.Name = itemName; 
-             }
-             else
-             {
-                 // Using local MapToXElement to match project structure
-                 el = MapToXElement(item, itemName ?? item.GetType().Name);
-             }
+            if (item == null) return;
+            XElement el;
+            if (item is IXmlStreamable streamable)
+            {
+                el = streamable.WriteToXml(options);
+                if (!string.IsNullOrEmpty(itemName) && el.Name != itemName) el.Name = itemName;
+            }
+            else
+            {
+                // Using local MapToXElement to match project structure
+                el = MapToXElement(item, itemName ?? item.GetType().Name);
+            }
 
-             el.WriteTo(writer);
+            el.WriteTo(writer);
         }
 
         private static XElement MapToXElement<T>(T item, string elementName)
@@ -148,6 +148,24 @@ namespace Reproduction
             }
             return el;
         }
+
+        private static string GetRootName<T>(string? itemName)
+        {
+            if (!string.IsNullOrEmpty(itemName)) return itemName!;
+
+            if (typeof(IXmlStreamable).IsAssignableFrom(typeof(T)) && !typeof(T).IsAbstract && !typeof(T).IsInterface)
+            {
+                try
+                {
+                    // Use Activator to create instance since we don't have new() constraint
+                    var instance = (IXmlStreamable)Activator.CreateInstance(typeof(T));
+                    if (instance != null) return instance.DefaultXmlRootElementName;
+                }
+                catch { }
+            }
+
+            return ReflectionHelper.GetCachedMetadata(typeof(T)).RootName;
+        }
     }
 
     public static class ReflectionHelper
@@ -156,17 +174,17 @@ namespace Reproduction
 
         public static XElement Serialize(object? item, XmlSerializationOptions? options, string? elementName = null)
         {
-            if (item == null) return null; 
+            if (item == null) return null;
             // This is just a helper for recursion, but GenericXmlStreamer uses its own MapToXElement
-            return GenericXmlStreamer_MapToXElement_Public(item, elementName ?? item.GetType().Name); 
+            return GenericXmlStreamer_MapToXElement_Public(item, elementName ?? item.GetType().Name);
         }
 
         // Bridge to access the private method logic if needed, but for simplicity we duplicated MapToXElement above inside GenericXmlStreamer
         // as parsing recursion isn't needed for this flat SimpleItem test.
         public static XElement GenericXmlStreamer_MapToXElement_Public(object item, string name)
         {
-             // This method is just a placeholder in repro
-             return new XElement(name);
+            // This method is just a placeholder in repro
+            return new XElement(name);
         }
 
 
@@ -207,7 +225,7 @@ namespace Reproduction
             public string XmlName { get; }
             public Type PropertyType { get; }
             public bool CanRead { get; }
-            public bool IsAttribute { get; } 
+            public bool IsAttribute { get; }
             public bool IsIgnored { get; }
 
             public XmlPropertyMetadata(PropertyInfo property)

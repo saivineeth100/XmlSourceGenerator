@@ -14,7 +14,7 @@ namespace XmlSourceGenerator.Tests.Integration
         public string Name { get; set; }
         public double Balance { get; set; }
         public bool IsActive { get; set; }
-        public int? OptionalAge { get; set; }
+        public byte? OptionalAge { get; set; }
     }
 
     public class BasicMappingTests
@@ -60,13 +60,13 @@ namespace XmlSourceGenerator.Tests.Integration
         }
 
         [Fact]
-        public void TestNullableMapping_WithValue()
+        public void TestNullableByteMapping_WithValue()
         {
             var xml = new XElement("BasicUser", new XElement("OptionalAge", "25"));
             var user = new BasicUser();
             user.ReadFromXml(xml);
 
-            Assert.Equal(25, user.OptionalAge);
+            Assert.Equal((byte)25, user.OptionalAge);
         }
 
         [Fact]

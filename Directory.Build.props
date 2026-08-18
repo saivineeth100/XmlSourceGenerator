@@ -14,24 +14,24 @@
     <PackageTags>xml;serialization;source-generator;roslyn;performance</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
-    
+
     <!-- Versioning -->
     <VersionPrefix>1.0.0</VersionPrefix>
     <MinVerTagPrefix>v</MinVerTagPrefix>
-    
+
     <!-- Build Settings -->
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
-    
+
     <!-- Package Settings -->
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    
+
     <!-- SourceLink -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>

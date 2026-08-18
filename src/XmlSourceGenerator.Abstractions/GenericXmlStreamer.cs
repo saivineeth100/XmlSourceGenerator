@@ -1,4 +1,4 @@
-using System.Reflection;
+using System.Collections;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -21,6 +21,17 @@ namespace XmlSourceGenerator.Abstractions
         // ---------------------------------------------------------
         // GENERIC READ: Stream -> IEnumerable<T>
         // ---------------------------------------------------------
+
+        /// <summary>
+        /// Parse the stream as XML, optionally filter for elements with name
+        /// <paramref name="itemName"/>, and yield the results as <see
+        /// cref="IEnumerable{T}"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="stream"></param>
+        /// <param name="options"></param>
+        /// <param name="itemName"></param>
+        /// <returns></returns>
         public static IEnumerable<T> ReadListDataFromStream<T>(Stream stream, XmlSerializationOptions? options = null, string? itemName = null) where T : new()
         {
             var settings = new XmlReaderSettings { Async = true };
@@ -33,6 +44,14 @@ namespace XmlSourceGenerator.Abstractions
             }
         }
 
+        /// <summary>
+        /// <inheritdoc cref="ReadListDataFromStream"/>
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="textReader"></param>
+        /// <param name="options"></param>
+        /// <param name="itemName"></param>
+        /// <returns></returns>
         public static IEnumerable<T> ReadListDataFromTextReader<T>(TextReader textReader, XmlSerializationOptions? options = null, string? itemName = null) where T : new()
         {
             var settings = new XmlReaderSettings { Async = true };
@@ -45,6 +64,19 @@ namespace XmlSourceGenerator.Abstractions
             }
         }
 
+        /// <summary>
+        /// Parse the stream as XML, optionally skip nodes whose names match one
+        /// of the <paramref name="path"/>s, optionally filter for
+        /// elements with name <paramref name="itemName"/>, and recursively
+        /// search for the target (<paramref name="itemName"/>, if valid) inside
+        /// the XML and yield the results as <see cref="IEnumerable{T}"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="textReader"></param>
+        /// <param name="path"></param>
+        /// <param name="options"></param>
+        /// <param name="itemName"></param>
+        /// <returns></returns>
         public static IEnumerable<T> ReadNestedListDataFromTextReader<T>(TextReader textReader, string[] path, XmlSerializationOptions? options = null, string? itemName = null) where T : new()
         {
             var settings = new XmlReaderSettings { Async = true };
@@ -63,25 +95,25 @@ namespace XmlSourceGenerator.Abstractions
                             break;
                         }
                     }
-                    if (!found) break; 
+                    if (!found) break;
                 }
 
                 if (found)
                 {
                     // If we found the container, read the list inside it
                     // We need to move inside the container
-                    // Currently reader is at <Objects>. 
+                    // Currently reader is at <Objects>.
                     // ReadListDataFromReader expects to find <T> elements.
                     // It will call MoveToContent() which stays on <Objects> if it's content? No.
                     // ReadListDataFromReader loop calls reader.Read() if Name != targetName.
                     // So if we pass the reader positioned at <Objects>, it will read next and find <T>.
-                    
+
                     // Use ReadSubtree to limit scope to the container
                     using (var subReader = reader.ReadSubtree())
                     {
                         // subReader is at <Objects> (Initial)
                         subReader.Read(); // Move to <Objects> element
-                        
+
                         foreach (var item in ReadListDataFromReader<T>(subReader, options, itemName))
                         {
                             yield return item;
@@ -93,7 +125,6 @@ namespace XmlSourceGenerator.Abstractions
 
         private static IEnumerable<T> ReadListDataFromReader<T>(XmlReader reader, XmlSerializationOptions? options, string? itemName) where T : new()
         {
-            // Default item name to class name if not provided
             // Default item name to class name if not provided
             string targetName = GetRootName<T>(itemName);
 
@@ -112,15 +143,15 @@ namespace XmlSourceGenerator.Abstractions
                     }
                     catch
                     {
-                       if (options?.IgnoreParsingErrors == true)
-                       {
-                           // Skip item
-                           item = default;
-                           // Ensure reader advances if ParseItem failed?
-                           // If XElement.Load failed, we might be in trouble.
-                           // But if conversion failed, reader is safely at EndElement.
-                       }
-                       else throw;
+                        if (options?.IgnoreParsingErrors == true)
+                        {
+                            // Skip item
+                            item = default;
+                            // Ensure reader advances if ParseItem failed?
+                            // If XElement.Load failed, we might be in trouble.
+                            // But if conversion failed, reader is safely at EndElement.
+                        }
+                        else throw;
                     }
 
                     if (item != null) yield return item;
@@ -138,6 +169,15 @@ namespace XmlSourceGenerator.Abstractions
         // ---------------------------------------------------------
         // GENERIC READ: Stream -> T (Single Item)
         // ---------------------------------------------------------
+
+        /// <summary>
+        /// Parse a non-enumerable object of type <typeparamref name="T"/> from the <paramref name="stream"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="stream"></param>
+        /// <param name="options"></param>
+        /// <param name="itemName">Optional parameter to set the expected root element name.</param>
+        /// <returns></returns>
         public static T? ReadDataFromStream<T>(Stream stream, XmlSerializationOptions? options = null, string? itemName = null) where T : new()
         {
             try
@@ -167,13 +207,25 @@ namespace XmlSourceGenerator.Abstractions
         // ---------------------------------------------------------
         // GENERIC WRITE: IEnumerable<T> -> Stream
         // ---------------------------------------------------------
-        public static async Task WriteDataToStreamAsync<T>(Stream stream, IEnumerable<T> items, XmlSerializationOptions? options = null, string rootName = "ArrayOfItems", string? itemName = null)
+
+        /// <summary>
+        /// Serialize the enumerable <paramref name="items"/> collection to the
+        /// <paramref name="stream"/> as a named XmlArray.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="stream"></param>
+        /// <param name="items"></param>
+        /// <param name="options"></param>
+        /// <param name="rootName"></param>
+        /// <param name="itemName"></param>
+        /// <returns></returns>
+        public static async Task WriteEnumerableDataToStreamAsync<T>(Stream stream, IEnumerable<T> items, XmlSerializationOptions? options = null, string rootName = "ArrayOfItems", string? itemName = null)
         {
             string targetItemName = GetRootName<T>(itemName);
 
-            var settings = new XmlWriterSettings 
-            { 
-                Async = true, 
+            var settings = new XmlWriterSettings
+            {
+                Async = true,
                 Indent = options?.WriteIndented ?? false,
                 Encoding = options?.Encoding ?? System.Text.Encoding.UTF8,
                 CloseOutput = false
@@ -182,7 +234,7 @@ namespace XmlSourceGenerator.Abstractions
             using (var writer = XmlWriter.Create(stream, settings))
             {
                 await writer.WriteStartDocumentAsync();
-                
+
                 // If rootName is null (e.g. single item write which handles its own root), handle it?
                 // WriteDataToStreamAsync(IEnumerable) implies a root container.
                 await writer.WriteStartElementAsync(null, rootName, null);
@@ -198,9 +250,25 @@ namespace XmlSourceGenerator.Abstractions
             }
         }
 
+        // ---------------------------------------------------------
+        // GENERIC WRITE: T -> Stream
+        // ---------------------------------------------------------
+
+        /// <summary>
+        /// Serialize a non-enumerable <paramref name="item"/> to the <paramref name="stream"/>.
+        /// </summary>
+        /// <typeparam name="T">Any non-enumerable type</typeparam>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when <paramref name="item"/> implements <see cref="IEnumerable"/>.
+        /// This method would serialize the enumerable's metadata rather than its items.
+        /// </exception>
+        /// <remarks>For types that implement <see cref="IEnumerable"/>, use <see cref="WriteEnumerableDataToStreamAsync{T}(Stream, IEnumerable{T}, XmlSerializationOptions?, string, string?)"/>.</remarks>
         public static async Task WriteDataToStreamAsync<T>(Stream stream, T item, XmlSerializationOptions? options = null, string? rootName = null, string? itemName = null)
         {
-            string actualRootName = rootName ?? itemName;
+            if (item is IEnumerable)
+                throw new ArgumentException($"Type of argument {nameof(item)} ({typeof(T).FullName}) implements {nameof(IEnumerable)}. Use {nameof(WriteEnumerableDataToStreamAsync)}.");
+            string? actualRootName = rootName ?? itemName;
 
             var settings = new XmlWriterSettings
             {
@@ -213,7 +281,7 @@ namespace XmlSourceGenerator.Abstractions
             using (var writer = XmlWriter.Create(stream, settings))
             {
                 await writer.WriteStartDocumentAsync();
-                
+
                 WriteItem(writer, item, actualRootName, options);
 
                 await writer.WriteEndDocumentAsync();
@@ -224,7 +292,6 @@ namespace XmlSourceGenerator.Abstractions
         // ---------------------------------------------------------
         // REFLECTION HELPERS (The "Dynamic" Part)
         // ---------------------------------------------------------
-        
 
 
         private static T ParseItem<T>(XmlReader reader, XmlSerializationOptions? options) where T : new()
@@ -249,19 +316,19 @@ namespace XmlSourceGenerator.Abstractions
 
         private static void WriteItem<T>(XmlWriter writer, T item, string? itemName, XmlSerializationOptions? options)
         {
-             if (item == null) return;
-             XElement el;
-             if (item is IXmlStreamable streamable)
-             {
-                 el = streamable.WriteToXml(options);
-                 if (!string.IsNullOrEmpty(itemName) && el.Name != itemName) el.Name = itemName; 
-             }
-             else
-             {
-                 el = MapToXElement(item, itemName ?? item.GetType().Name);
-             }
+            if (item == null) return;
+            XElement el;
+            if (item is IXmlStreamable streamable)
+            {
+                el = streamable.WriteToXml(options);
+                if (!string.IsNullOrEmpty(itemName) && el.Name != itemName) el.Name = itemName;
+            }
+            else
+            {
+                el = MapToXElement(item, itemName ?? item.GetType().Name);
+            }
 
-             el.WriteTo(writer);
+            el.WriteTo(writer);
         }
 
         private static void MapFromXElement<T>(T item, XElement el)
@@ -316,7 +383,7 @@ namespace XmlSourceGenerator.Abstractions
         private static string GetRootName<T>(string? itemName)
         {
             if (!string.IsNullOrEmpty(itemName)) return itemName!;
-            
+
             if (typeof(IXmlStreamable).IsAssignableFrom(typeof(T)) && !typeof(T).IsAbstract && !typeof(T).IsInterface)
             {
                 try

@@ -47,7 +47,7 @@ public class XmlSerializationOptions
     public XmlNamingPolicy? PropertyNamingPolicy { get; set; }
     public bool WriteIndented { get; set; }
     public Dictionary<(Type Type, string PropertyName), string> PropertyOverrides { get; }
-    
+
     public string? GetXmlName(Type type, string propertyName);
 }
 ```
@@ -83,7 +83,7 @@ public abstract class XmlNamingPolicy
 {
     public static XmlNamingPolicy CamelCase { get; }
     public static XmlNamingPolicy SnakeCase { get; }
-    
+
     public abstract string ConvertName(string name);
 }
 ```
@@ -109,24 +109,70 @@ Helper class for streaming XML to/from generic collections.
 ```csharp
 public static class GenericXmlStreamer
 {
-    public static void StreamToXml<T>(IEnumerable<T> items, Stream stream, 
-        XmlSerializationOptions? options = null) where T : IXmlStreamable;
-    
-    public static List<T> StreamFromXml<T>(Stream stream, string rootName, 
-        string itemName, XmlSerializationOptions? options = null) 
-        where T : IXmlStreamable, new();
+    public static IEnumerable<T> ReadListDataFromStream<T>(
+        Stream stream,
+        XmlSerializationOptions? options = null,
+        string? itemName = null
+    ) where T : new();
+
+    public static IEnumerable<T> ReadListDataFromTextReader<T>(
+        TextReader textReader,
+        XmlSerializationOptions? options = null,
+        string? itemName = null
+    ) where T : new();
+
+    public static IEnumerable<T> ReadNestedListDataFromTextReader<T>(
+        TextReader textReader,
+        string[] path,
+        XmlSerializationOptions? options = null,
+        string? itemName = null
+    ) where T : new();
+
+    public static T? ReadDataFromStream<T>(
+        Stream stream,
+        XmlSerializationOptions? options = null,
+        string? itemName = null
+    ) where T : new();
+
+    public static async Task WriteEnumerableDataToStreamAsync<T>(
+        Stream stream,
+        IEnumerable<T> items,
+        XmlSerializationOptions? options = null,
+        string rootName = "ArrayOfItems",
+        string? itemName = null
+    );
+
+    public static async Task WriteDataToStreamAsync<T>(
+        Stream stream,
+        T item,
+        XmlSerializationOptions? options = null,
+        string? rootName = null,
+        string? itemName = null
+    );
 }
 ```
 
 #### Methods
 
-**`StreamToXml<T>`**
+##### GENERIC READ: `Stream` -> `IEnumerable<T>`
 
-Streams a collection to XML without loading all items in memory.
+- `ReadListDataFromStream<T>`: Parse the `stream` as XML, optionally filter for elements with name `itemName`, and yield the results as `IEnumerable<out T>`.
 
-**`StreamFromXml<T>`**
+- `ReadListDataFromTextReader<T>`: Parse the `stream` as XML, optionally filter for elements with name `itemName`, and yield the results as `IEnumerable<out T>`.
 
-Streams XML to a collection, processing one item at a time.
+- `ReadNestedListDataFromTextReader<T>`: Parse the `stream` as XML, optionally skip nodes whose names match one of the `path`s, optionally filter for elements with name `itemName`, and recursively search for the target (`itemName`, if valid) inside the XML and yield the results as `IEnumerable<out T>`.
+
+##### GENERIC READ: `Stream` -> `T` (Single Item)
+
+- `ReadDataFromStream<T>`: Parse a non-enumerable object of type T from the `stream`.
+
+##### GENERIC WRITE: `IEnumerable<T>` -> `Stream`
+
+- `WriteEnumerableDataToStreamAsync<T>`: Serialize the enumerable `items` collection to the `stream` as a named XmlArray.
+
+##### GENERIC WRITE: `T` -> `Stream`
+
+- `WriteDataToStreamAsync<T>`: Write a single, non-enumerable object to the `stream`.
 
 ---
 
@@ -138,7 +184,7 @@ Low-level XML streaming utilities.
 public static class XmlStreamProcessor
 {
     public static IEnumerable<XElement> StreamElements(Stream stream, string elementName);
-    public static void WriteElements(Stream stream, string rootName, 
+    public static void WriteElements(Stream stream, string rootName,
         IEnumerable<XElement> elements);
 }
 ```
@@ -156,15 +202,20 @@ public static class XmlStreamProcessor
 The source generator creates implementations at compile time. You can view the generated code:
 
 **Visual Studio:**
+
 1. Solution Explorer → Dependencies → Analyzers → XmlSourceGenerator
 2. Expand to see generated files
 
+You may also set `<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>` in your project, .targets, or .props files so generated files are written to the [`IntermediateOutputPath`](https://learn.microsoft.com/visualstudio/msbuild/common-msbuild-project-properties?view=vs-2022#:~:text=IntermediateOutputPath).
+
 **Generated File Pattern:**
+
 ```
 {ClassName}_XmlGenerated.g.cs
 ```
 
 **Example Generated Code:**
+
 ```csharp
 partial class User : IXmlStreamable
 {
@@ -172,7 +223,7 @@ partial class User : IXmlStreamable
     {
         var elem_Id = element.Element("Id");
         if (elem_Id != null) { Id = (int)elem_Id; }
-        
+
         var elem_Name = element.Element("Name");
         if (elem_Name != null) { Name = elem_Name.Value; }
     }

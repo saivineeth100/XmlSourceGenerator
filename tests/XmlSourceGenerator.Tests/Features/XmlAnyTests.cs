@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Xml.Linq;
-using Xunit;
-using XmlSourceGenerator;
 using XmlSourceGenerator.Abstractions;
 
 namespace XmlSourceGenerator.Tests.Integration.Features
@@ -63,7 +57,7 @@ namespace XmlSourceGenerator.Tests.Integration.Features
             container.ReadFromXml(xml);
 
             Assert.Equal("Main", container.Name);
-            
+
             Assert.NotNull(container.AnyElements);
             Assert.Equal(2, container.AnyElements.Count);
             Assert.Contains(container.AnyElements, e => e.Name == "Extra" && e.Value == "Data");

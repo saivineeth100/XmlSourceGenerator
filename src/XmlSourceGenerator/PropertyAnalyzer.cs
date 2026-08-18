@@ -30,26 +30,26 @@ namespace XmlSourceGenerator
             }
             else if (type.IsReferenceType)
             {
-               // Reference types are conceptually nullable in C# unless NRT enabled, but we track XML nullable explicitly
+                // Reference types are conceptually nullable in C# unless NRT enabled, but we track XML nullable explicitly
             }
 
             var typeModel = CreateTypeModel(underlyingType);
-            
+
             var info = new GeneratorPropertyModel
             {
                 Name = member.Name,
                 TypeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 TypeInfo = typeModel
             };
-            
+
             var mappingDepths = new List<(PolymorphicMappingModel Map, int Depth)>();
 
             // Set ItemTypeInfo if collection
             if (typeModel.Kind == PropertyKind.Collection && underlyingType is INamedTypeSymbol namedUnderlying)
             {
-                 // Typically List<T> or IList<T>
-                 var itemType = namedUnderlying.TypeArguments[0];
-                 info.ItemTypeInfo = CreateTypeModel(itemType);
+                // Typically List<T> or IList<T>
+                var itemType = namedUnderlying.TypeArguments[0];
+                info.ItemTypeInfo = CreateTypeModel(itemType);
             }
 
             // Defaults based on type
@@ -59,32 +59,33 @@ namespace XmlSourceGenerator
             }
             if (type.IsReferenceType && !info.IsNullable.HasValue)
             {
-                 // Default for reference types is usually false for "IsNullable" attribute (xsi:nil), 
-                 // but we can leave it null to mean "default behavior"
-                 info.IsNullable = false;
+                // Default for reference types is usually false for "IsNullable" attribute (xsi:nil),
+                // but we can leave it null to mean "default behavior"
+                info.IsNullable = false;
             }
             if (!type.IsReferenceType && !isNullable && !info.IsNullable.HasValue)
             {
-                 info.IsNullable = false;
+                info.IsNullable = false;
             }
 
 
-            if (info.TypeInfo.Kind == PropertyKind.Collection)
-            {
-                info.IsFlattened = true;
-            }
+            // WARNING: this breaks implicit containers required for XmlSerializer parity!
+            // if (info.TypeInfo.Kind == PropertyKind.Collection)
+            // {
+            //     info.IsFlattened = true;
+            // }
 
             // Check attributes (with inheritance for overrides)
             foreach (var attr in GetXmlAttributes(member))
             {
                 var attrName = attr.AttributeClass?.Name;
-                
+
                 switch (attrName)
                 {
                     case "XmlIgnoreAttribute":
                         info.IsIgnored = true;
                         break;
-                        
+
                     case "XmlElementAttribute":
                         string? elementName = null;
                         INamedTypeSymbol? targetType = null;
@@ -109,7 +110,7 @@ namespace XmlSourceGenerator
                         {
                             elementName = attr.NamedArguments.FirstOrDefault(a => a.Key == "ElementName").Value.Value as string;
                         }
-                        
+
                         if (targetType == null)
                         {
                             var typeArg = attr.NamedArguments.FirstOrDefault(a => a.Key == "Type");
@@ -122,14 +123,14 @@ namespace XmlSourceGenerator
                         if (targetType != null)
                         {
                             string polyXmlName = elementName ?? targetType.Name;
-                            var mapping = new PolymorphicMappingModel 
-                            { 
-                                XmlName = polyXmlName, 
+                            var mapping = new PolymorphicMappingModel
+                            {
+                                XmlName = polyXmlName,
                                 TargetTypeName = targetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                                 TargetTypeInfo = CreateTypeModel(targetType),
                                 ImplementsIXmlStreamable = ImplementsIXmlStreamable(targetType)
                             };
-                            
+
                             mappingDepths.Add((mapping, GetInheritanceDepth(targetType)));
 
                             // Implicitly flattened if polymorphic XmlElements are used
@@ -144,7 +145,7 @@ namespace XmlSourceGenerator
                         }
 
                         info.Namespace = attr.NamedArguments.FirstOrDefault(a => a.Key == "Namespace").Value.Value as string;
-                        
+
                         var isNullableArg = attr.NamedArguments.FirstOrDefault(a => a.Key == "IsNullable");
                         if (isNullableArg.Value.Value != null)
                         {
@@ -157,7 +158,7 @@ namespace XmlSourceGenerator
                             info.Order = (int)orderArg.Value.Value;
                         }
                         break;
-                        
+
                     case "XmlAttributeAttribute":
                         info.SerializeAsAttribute = true;
                         if (attr.ConstructorArguments.Length > 0)
@@ -170,17 +171,17 @@ namespace XmlSourceGenerator
                         }
                         info.Namespace = attr.NamedArguments.FirstOrDefault(a => a.Key == "Namespace").Value.Value as string;
                         break;
-                        
+
                     case "XmlTextAttribute":
                         info.SerializeAsInnerText = true;
                         break;
-                        
+
                     case "XmlFormatAttribute":
                         info.Formats = attr.ConstructorArguments[0].Values
                             .Select(v => (string)v.Value)
                             .ToArray();
                         break;
-                        
+
                     case "XmlArrayAttribute":
                         if (attr.ConstructorArguments.Length > 0)
                         {
@@ -190,15 +191,13 @@ namespace XmlSourceGenerator
                         {
                             info.ArrayElementName = attr.NamedArguments.FirstOrDefault(a => a.Key == "ElementName").Value.Value as string;
                         }
-                        
+
                         var arrayOrderArg = attr.NamedArguments.FirstOrDefault(a => a.Key == "Order");
                         if (arrayOrderArg.Value.Value != null)
                         {
                             info.Order = (int)arrayOrderArg.Value.Value;
                         }
                         break;
-                        
-
 
                     case "XmlArrayItemAttribute":
                         if (attr.ConstructorArguments.Length > 0)
@@ -210,17 +209,17 @@ namespace XmlSourceGenerator
                             info.ArrayItemElementName = attr.NamedArguments.FirstOrDefault(a => a.Key == "ElementName").Value.Value as string;
                         }
                         break;
-                        
+
                     case "XmlStreamListElementAttribute":
                         var xmlName = (string)attr.ConstructorArguments[0].Value;
                         var tType = (INamedTypeSymbol)attr.ConstructorArguments[1].Value;
-                         info.PolymorphicMappings.Add(new PolymorphicMappingModel 
-                            { 
-                                XmlName = xmlName, 
-                                TargetTypeName = tType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                                TargetTypeInfo = CreateTypeModel(tType),
-                                ImplementsIXmlStreamable = ImplementsIXmlStreamable(tType)
-                            });
+                        info.PolymorphicMappings.Add(new PolymorphicMappingModel
+                        {
+                            XmlName = xmlName,
+                            TargetTypeName = tType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                            TargetTypeInfo = CreateTypeModel(tType),
+                            ImplementsIXmlStreamable = ImplementsIXmlStreamable(tType)
+                        });
                         break;
 
                     case "XmlAnyElementAttribute":
@@ -240,20 +239,20 @@ namespace XmlSourceGenerator
 
             // Polymorphism analysis via XmlInclude on property type
             ITypeSymbol typeToCheck = typeModel.Kind == PropertyKind.Collection && underlyingType is INamedTypeSymbol nu
-                ? nu.TypeArguments[0] 
+                ? nu.TypeArguments[0]
                 : underlyingType;
-            
+
             AnalyzePolymorphism(info, typeToCheck, mappingDepths);
-            
+
             // Sort PolymorphicMappings by inheritance depth (descending)
             if (mappingDepths.Count > 0)
             {
-               foreach(var item in mappingDepths.OrderByDescending(x => x.Depth))
-               {
-                   info.PolymorphicMappings.Add(item.Map);
-               }
+                foreach (var item in mappingDepths.OrderByDescending(x => x.Depth))
+                {
+                    info.PolymorphicMappings.Add(item.Map);
+                }
             }
-            
+
             return info;
         }
 
@@ -271,25 +270,25 @@ namespace XmlSourceGenerator
 
         private static GeneratorTypeModel CreateTypeModel(ITypeSymbol type)
         {
-             var kind = DeterminePropertyKind(type);
-             var model = new GeneratorTypeModel
-             {
-                 Name = type.Name,
-                 Namespace = type.ContainingNamespace?.ToString() ?? "",
-                 FullName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                 IsEnum = type.TypeKind == TypeKind.Enum,
-                 IsReferenceType = type.IsReferenceType,
-                 IsString = type.SpecialType == SpecialType.System_String,
-                 ImplementsIXmlStreamable = ImplementsIXmlStreamable(type),
-                 Kind = kind
-             };
+            var kind = DeterminePropertyKind(type);
+            var model = new GeneratorTypeModel
+            {
+                Name = type.Name,
+                Namespace = type.ContainingNamespace?.ToString() ?? "",
+                FullName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                IsEnum = type.TypeKind == TypeKind.Enum,
+                IsReferenceType = type.IsReferenceType,
+                IsString = type.SpecialType == SpecialType.System_String,
+                ImplementsIXmlStreamable = ImplementsIXmlStreamable(type),
+                Kind = kind
+            };
 
-             if (model.IsEnum)
-             {
-                 model.EnumMapping = EnumHelper.GetEnumMap(type);
-             }
+            if (model.IsEnum)
+            {
+                model.EnumMapping = EnumHelper.GetEnumMap(type);
+            }
 
-             return model;
+            return model;
         }
 
         private static bool ImplementsIXmlStreamable(ITypeSymbol type)
@@ -303,7 +302,7 @@ namespace XmlSourceGenerator
         private static IEnumerable<AttributeData> GetXmlAttributes(ISymbol member)
         {
             var attrs = member.GetAttributes();
-            
+
             if (member is IPropertySymbol property)
             {
                 // If property is an override and has no XML attributes, check base
@@ -316,13 +315,13 @@ namespace XmlSourceGenerator
                     }
                 }
             }
-            
+
             return attrs;
         }
 
         private static bool HasXmlAttributes(ImmutableArray<AttributeData> attributes)
         {
-            return attributes.Any(a => 
+            return attributes.Any(a =>
             {
                 var name = a.AttributeClass?.Name;
                 return name != null && (
@@ -347,7 +346,7 @@ namespace XmlSourceGenerator
                     if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is INamedTypeSymbol targetType)
                     {
                         string xmlName = targetType.Name;
-                        
+
                         var typeAttr = targetType.GetAttributes().FirstOrDefault(a => a.AttributeClass?.Name == "XmlTypeAttribute");
                         if (typeAttr != null)
                         {
@@ -372,15 +371,15 @@ namespace XmlSourceGenerator
                                 xmlName = (string)rootAttr.ConstructorArguments[0].Value;
                             }
                         }
-                        
+
                         var mapping = new PolymorphicMappingModel
                         {
-                             XmlName = xmlName,
-                             TargetTypeName = targetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                             TargetTypeInfo = CreateTypeModel(targetType),
-                             ImplementsIXmlStreamable = ImplementsIXmlStreamable(targetType)
+                            XmlName = xmlName,
+                            TargetTypeName = targetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                            TargetTypeInfo = CreateTypeModel(targetType),
+                            ImplementsIXmlStreamable = ImplementsIXmlStreamable(targetType)
                         };
-                        
+
                         mappingDepths.Add((mapping, GetInheritanceDepth(targetType)));
                     }
                 }
@@ -401,7 +400,7 @@ namespace XmlSourceGenerator
             {
                 return PropertyKind.DateTime;
             }
-             if (typeName == "System.DateOnly" || typeName == "System.TimeOnly" || typeName == "System.TimeSpan")
+            if (typeName == "System.DateOnly" || typeName == "System.TimeOnly" || typeName == "System.TimeSpan")
             {
                 return PropertyKind.DateTime;
             }
@@ -435,7 +434,7 @@ namespace XmlSourceGenerator
 
         private static bool IsPrimitive(SpecialType specialType)
         {
-            return specialType >= SpecialType.System_Boolean && 
+            return specialType >= SpecialType.System_Boolean &&
                    specialType <= SpecialType.System_String;
         }
     }

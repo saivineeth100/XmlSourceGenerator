@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Xml.Linq;
-using Xunit;
 using XmlSourceGenerator.Abstractions;
 
 namespace XmlSourceGenerator.Tests.Integration
@@ -71,15 +67,15 @@ namespace XmlSourceGenerator.Tests.Integration
         }
 
         [Fact]
-        public void TestWriteIndented()
+        public async Task TestWriteIndentedAsync()
         {
             var product = new Product { ProductId = 1, ProductName = "Test" };
-            
+
             var options = new XmlSerializationOptions { WriteIndented = true };
 
-            using var stream = new MemoryStream();
-            GenericXmlStreamer.WriteDataToStreamAsync(stream, new[] { product }, options).Wait();
-            
+            await using var stream = new MemoryStream();
+            await GenericXmlStreamer.WriteEnumerableDataToStreamAsync(stream, [product], options);
+
             stream.Position = 0;
             var text = new StreamReader(stream).ReadToEnd();
 
@@ -88,15 +84,15 @@ namespace XmlSourceGenerator.Tests.Integration
         }
 
         [Fact]
-        public void TestWriteMinified()
+        public async Task TestWriteMinifiedAsync()
         {
             var product = new Product { ProductId = 1, ProductName = "Test" };
-            
+
             var options = new XmlSerializationOptions { WriteIndented = false };
 
-            using var stream = new MemoryStream();
-            GenericXmlStreamer.WriteDataToStreamAsync(stream, new[] { product }, options).Wait();
-            
+            await using var stream = new MemoryStream();
+            await GenericXmlStreamer.WriteEnumerableDataToStreamAsync(stream, [product], options);
+
             stream.Position = 0;
             var text = new StreamReader(stream).ReadToEnd();
 

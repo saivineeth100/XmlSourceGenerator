@@ -5,7 +5,7 @@
     <PackageId>XmlSourceGenerator</PackageId>
     <Description>High-performance XML serialization via source generation with XmlSerializer feature parity. Supports attributes, enums, collections, inheritance, and custom formatting.</Description>
     <PackageTags>$(PackageTags);analyzer;codegen</PackageTags>
-    
+
     <!-- Source Generator Specific Settings -->
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
@@ -16,6 +16,9 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="XmlSourceGenerator.UnitTests" />
+    <!-- enable Release Tracking analyzer -->
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
   </ItemGroup>
 
   <ItemGroup>

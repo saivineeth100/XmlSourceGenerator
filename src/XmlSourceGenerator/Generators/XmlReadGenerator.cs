@@ -47,7 +47,7 @@ namespace XmlSourceGenerator.Generators
         private void GenerateReadMethodInternal(IEnumerable<GeneratorPropertyModel> properties, string className, bool isNew)
         {
             string newModifier = isNew ? "new " : "";
-            _sb.AppendLine($"public {newModifier} void ReadFromXml(XElement element, XmlSerializationOptions? options = null)");
+            _sb.AppendLine($"public {newModifier}void ReadFromXml(XElement element, XmlSerializationOptions? options = null)");
             _sb.AppendLine("{");
             
             using (_sb.Indent())

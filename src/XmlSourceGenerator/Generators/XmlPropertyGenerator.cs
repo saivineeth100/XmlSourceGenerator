@@ -536,6 +536,16 @@ namespace XmlSourceGenerator.Generators
                 {
                     _sb.AppendLine($"{propName} = {sourceVariable}.Value;");
                 }
+                else if (typeName is "byte" or "byte?" or $"{nameof(Nullable)}<byte>")
+                {
+                    /* INT8 needs custom conversion to prevent CS0457 "XElement -> double | decimal -> byte"
+                       nullable makes no difference; sbyte is unaffected.<br/>
+                       Conclusion: Convert to sbyte and then to byte
+                     */
+                    // e.g. "sbyte", "sbyte?", "Nullable<sbyte>"
+                    string intermediate = typeName[0] == 'N' ? "Nullable<sbyte>" : $"s{typeName}";
+                    _sb.AppendLine($"{propName} = ({typeName})({intermediate}){sourceVariable};");
+                }
                 else
                 {
                     // For nullable primitives, explicit cast (int?)element works if strictly element, 
