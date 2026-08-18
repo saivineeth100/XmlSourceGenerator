@@ -8,8 +8,8 @@
     <Description>High-performance XML serialization via source generation with XmlSerializer feature parity</Description>
     <Copyright>Copyright © $(Authors) 2025</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/saivineeth/XmlSourceGenerator</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/saivineeth/XmlSourceGenerator</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/saivineeth100/XmlSourceGenerator</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/saivineeth100/XmlSourceGenerator</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>xml;serialization;source-generator;roslyn;performance</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
