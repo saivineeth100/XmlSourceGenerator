@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/XmlSourceGenerator.Abstractions/XmlSourceGenerator.Abstractions.csproj" />
+    <Project Path="src/XmlSourceGenerator/XmlSourceGenerator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/XmlSourceGenerator.Benchmarks/XmlSourceGenerator.Benchmarks.csproj" />
+    <Project Path="tests/XmlSourceGenerator.Tests/XmlSourceGenerator.Tests.csproj" />
+    <Project Path="tests/XmlSourceGenerator.UnitTests/XmlSourceGenerator.UnitTests.csproj" />
+  </Folder>
+  <Project Path="Reproduction/Reproduction.csproj" />
+</Solution>

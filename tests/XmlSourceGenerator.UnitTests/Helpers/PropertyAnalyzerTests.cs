@@ -1,6 +1,3 @@
-using FluentAssertions;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using XmlSourceGenerator.Abstractions;
 using XmlSourceGenerator.Helpers;
 using XmlSourceGenerator.Models;
@@ -12,7 +9,7 @@ public class PropertyAnalyzerTests
     private static Compilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
-        
+
         var coreAssemblies = AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
             .Select(a => MetadataReference.CreateFromFile(a.Location))
@@ -20,7 +17,7 @@ public class PropertyAnalyzerTests
 
         var abstractionsPath = typeof(IXmlStreamable).Assembly.Location;
         coreAssemblies.Add(MetadataReference.CreateFromFile(abstractionsPath));
-        
+
         // Add System.Xml.Serialization
         var xmlPath = typeof(System.Xml.Serialization.XmlAttributeAttribute).Assembly.Location;
         coreAssemblies.Add(MetadataReference.CreateFromFile(xmlPath));
@@ -37,7 +34,7 @@ public class PropertyAnalyzerTests
         // Arrange
         var source = @"
             using System.Xml.Serialization;
-            
+
             namespace Test
             {
                 public class MyClass
@@ -65,7 +62,7 @@ public class PropertyAnalyzerTests
         // Arrange
         var source = @"
             using System.Xml.Serialization;
-            
+
             namespace Test
             {
                 public class MyClass
@@ -93,7 +90,7 @@ public class PropertyAnalyzerTests
         // Arrange
         var source = @"
             using System.Xml.Serialization;
-            
+
             namespace Test
             {
                 public class MyClass
@@ -120,7 +117,7 @@ public class PropertyAnalyzerTests
         // Arrange
         var source = @"
             using System.Xml.Serialization;
-            
+
             namespace Test
             {
                 public class MyClass
@@ -147,7 +144,7 @@ public class PropertyAnalyzerTests
         // Arrange
         var source = @"
             using System.Xml.Serialization;
-            
+
             namespace Test
             {
                 public class MyClass
@@ -175,7 +172,7 @@ public class PropertyAnalyzerTests
         var source = @"
             using System.Xml.Serialization;
             using System.Collections.Generic;
-            
+
             namespace Test
             {
                 public class MyClass
@@ -207,7 +204,7 @@ public class PropertyAnalyzerTests
             using System.Xml.Serialization;
             using System.Xml.Linq;
             using System.Collections.Generic;
-            
+
             namespace Test
             {
                 public class MyClass
@@ -236,7 +233,7 @@ public class PropertyAnalyzerTests
             using System.Xml.Serialization;
             using System.Xml.Linq;
             using System.Collections.Generic;
-            
+
             namespace Test
             {
                 public class MyClass
@@ -292,7 +289,7 @@ public class PropertyAnalyzerTests
             namespace Test
             {
                 public enum Status { Active, Inactive }
-                
+
                 public class MyClass
                 {
                     public Status State { get; set; }
@@ -316,7 +313,7 @@ public class PropertyAnalyzerTests
         // Arrange
         var source = @"
             using System;
-            
+
             namespace Test
             {
                 public class MyClass
@@ -347,7 +344,7 @@ public class PropertyAnalyzerTests
             namespace Test
             {
                 public class Address { }
-                
+
                 public class MyClass
                 {
                     public Address Location { get; set; }

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace XmlSourceGenerator.Models
 {
     public class GeneratorTypeModel
@@ -8,12 +6,14 @@ namespace XmlSourceGenerator.Models
         public string Namespace { get; set; }
         public string FullName { get; set; }
         public bool IsEnum { get; set; }
+        /// <summary>Symbol's type is annotated with '?'</summary>
+        public bool IsNullableAnnotated { get; set; }
         public bool IsReferenceType { get; set; }
         public bool IsString { get; set; }
         public bool ImplementsIXmlStreamable { get; set; }
         public Dictionary<string, string> EnumMapping { get; set; } = new Dictionary<string, string>();
         public PropertyKind Kind { get; set; }
-        
+
         public GeneratorPropertyModel[] Properties { get; set; } = [];
 
         public GeneratorTypeModel(string name, string ns, string fullName, bool isEnum, bool isReferenceType, bool isString)
@@ -26,7 +26,7 @@ namespace XmlSourceGenerator.Models
             IsString = isString;
         }
 
-        public GeneratorTypeModel() 
+        public GeneratorTypeModel()
         {
             Name = string.Empty;
             Namespace = string.Empty;

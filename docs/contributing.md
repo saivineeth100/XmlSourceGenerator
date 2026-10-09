@@ -26,7 +26,7 @@ dotnet test
 
 ## Project Structure
 
-```
+```txt
 XmlSourceGenerator/
 ├── src/
 │   ├── XmlSourceGenerator.Abstractions/   # Runtime library

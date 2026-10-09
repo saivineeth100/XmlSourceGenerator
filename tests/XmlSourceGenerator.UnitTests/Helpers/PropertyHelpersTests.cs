@@ -1,6 +1,3 @@
-using FluentAssertions;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using XmlSourceGenerator.Abstractions;
 using XmlSourceGenerator.Helpers;
 
@@ -11,7 +8,7 @@ public class PropertyHelpersTests
     private static Compilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
-        
+
         var coreAssemblies = AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
             .Select(a => MetadataReference.CreateFromFile(a.Location))
@@ -63,7 +60,7 @@ public class PropertyHelpersTests
                 {
                     public string BaseProp { get; set; }
                 }
-                
+
                 public class DerivedClass : BaseClass
                 {
                     public string DerivedProp { get; set; }
@@ -116,7 +113,7 @@ public class PropertyHelpersTests
             namespace Test
             {
                 public class ComplexType { }
-                
+
                 public class MyClass
                 {
                     public ComplexType Complex { get; set; }

@@ -1,6 +1,7 @@
 using System.Xml;
 using System.Xml.Linq;
 
+// ? This seems to be a sample implementation. Why is it in a redistributed binary?
 namespace XmlSourceGenerator.Abstractions
 {
     public class User
@@ -20,7 +21,7 @@ namespace XmlSourceGenerator.Abstractions
         {
             // We do NOT use 'using' on the stream here because we don't own the stream's lifetime
             // (The caller, e.g., HttpClient, owns it).
-            
+
             var settings = new XmlReaderSettings { Async = true }; // Async is good practice even if we sync read here
             using (var reader = XmlReader.Create(stream, settings))
             {
@@ -38,11 +39,11 @@ namespace XmlSourceGenerator.Abstractions
                         // 2. Map XElement -> Object using nice LINQ
                         yield return new User
                         {
-                            Name = (string)el.Element("Name"),
+                            Name = (string?)el.Element("Name") ?? string.Empty,
                             Age = (int?)el.Element("Age"),
-                            Role = (string)el.Attribute("Role")
+                            Role = (string?)el.Attribute("Role") ?? string.Empty
                         };
-                        
+
                         // 'el' goes out of scope here and is eligible for GC
                     }
                 }
@@ -55,9 +56,9 @@ namespace XmlSourceGenerator.Abstractions
         // ---------------------------------------------------------
         public static async Task WriteUsersToStreamAsync(Stream stream, IEnumerable<User> users)
         {
-            var settings = new XmlWriterSettings 
-            { 
-                Async = true, 
+            var settings = new XmlWriterSettings
+            {
+                Async = true,
                 Indent = false // False for performance/bandwidth
             };
 
@@ -73,7 +74,13 @@ namespace XmlSourceGenerator.Abstractions
                     var el = new XElement("User",
                         new XAttribute("Role", user.Role ?? ""),
                         new XElement("Name", user.Name),
+#if NET5_0
+#pragma warning disable CS8604 // Possible null reference argument when targeting net5.0
+#endif
                         user.Age.HasValue ? new XElement("Age", user.Age) : null
+#if NET5_0
+#pragma warning restore CS8604 // Possible null reference argument when targeting net5.0
+#endif
                     );
 
                     // Efficiently write the XElement to the stream

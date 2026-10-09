@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
@@ -37,15 +36,15 @@ namespace XmlSourceGenerator.Analyzers
             // But we can't easily check 'partial' keyword on the Symbol directly without looking at syntax references.
             // However, compilation errors usually occur if not partial. But we can hint.
             // Improving validation: Check syntax declarations.
-           /* if (!IsPartial(namedType))
-            {
-                 context.ReportDiagnostic(Diagnostic.Create(Diagnostics.ClassMustBePartial, namedType.Locations[0], namedType.Name));
-            }*/
-            // Optimization: Skip syntax check for now as the generator will likely fail or user knows partial is needed. 
+            /* if (!IsPartial(namedType))
+             {
+                  context.ReportDiagnostic(Diagnostic.Create(Diagnostics.ClassMustBePartial, namedType.Locations[0], namedType.Name));
+             }*/
+            // Optimization: Skip syntax check for now as the generator will likely fail or user knows partial is needed.
             // Actually, if it's not partial, the generator can't generate the other part, so it's a compile error anyway (CS0260 partial modifier of declaration... is missing).
             // But let's check it for good UX.
-            
-            // Re-implement syntax check via declaring syntax references if needed. 
+
+            // Re-implement syntax check via declaring syntax references if needed.
             // Let's stick to semantic checks for now.
 
             // XSG002: Parameterless constructor
@@ -56,12 +55,12 @@ namespace XmlSourceGenerator.Analyzers
                 // If it has constructors but none are parameterless public, report error.
                 // Wait, if no constructors defined, .Constructors returns the implicit one.
                 // So checking .Any(...) is correct.
-                 if (!(namedType.IsValueType)) // Structs always have parameterless.
-                 {
+                if (!(namedType.IsValueType)) // Structs always have parameterless.
+                {
                     // Actually, if we require public parameterless, we should check availability.
                     // If the user defined a constructor with params, the default one is gone.
                     context.ReportDiagnostic(Diagnostic.Create(Diagnostics.ClassMustHaveParameterlessConstructor, namedType.Locations[0], namedType.Name));
-                 }
+                }
             }
 
             var duplicateCheck = new System.Collections.Generic.HashSet<string>();
@@ -77,114 +76,117 @@ namespace XmlSourceGenerator.Analyzers
 
         private void AnalyzeProperty(SymbolAnalysisContext context, IPropertySymbol prop, System.Collections.Generic.HashSet<string> duplicateCheck)
         {
-             if (prop.IsStatic) return;
+            if (prop.IsStatic) return;
 
-             var attrs = prop.GetAttributes();
-             var xmlAttribute = attrs.FirstOrDefault(a => a.AttributeClass?.Name == "XmlAttributeAttribute");
-             var xmlElement = attrs.FirstOrDefault(a => a.AttributeClass?.Name == "XmlElementAttribute");
-             var xmlList = attrs.FirstOrDefault(a => a.AttributeClass?.Name == "XmlStreamListElementAttribute");
-             var xmlIgnore = attrs.FirstOrDefault(a => a.AttributeClass?.Name == "XmlIgnoreAttribute");
+            var attrs = prop.GetAttributes();
+            var xmlAttribute = attrs.FirstOrDefault(a => a.AttributeClass?.Name == "XmlAttributeAttribute");
+            var xmlElement = attrs.FirstOrDefault(a => a.AttributeClass?.Name == "XmlElementAttribute");
+            var xmlList = attrs.FirstOrDefault(a => a.AttributeClass?.Name == "XmlStreamListElementAttribute");
+            var xmlIgnore = attrs.FirstOrDefault(a => a.AttributeClass?.Name == "XmlIgnoreAttribute");
 
-             if (xmlIgnore != null) return;
+            if (xmlIgnore != null) return;
 
-             // XSG003: XmlAttribute on complex type
-             if (xmlAttribute != null)
-             {
-                 // Exclude XElement from this check
-                 if (!IsSimpleType(prop.Type) && !IsXElement(prop.Type))
-                 {
-                     context.ReportDiagnostic(Diagnostic.Create(Diagnostics.XmlAttributeOnComplexType, prop.Locations[0], prop.Name));
-                 }
-             }
+            // XSG003: XmlAttribute on complex type
+            if (xmlAttribute != null)
+            {
+                // Exclude XElement from this check
+                if (!IsSimpleType(prop.Type) && !IsXElement(prop.Type))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(Diagnostics.XmlAttributeOnComplexType, prop.Locations[0], prop.Name));
+                }
+            }
 
-             // XSG004: XmlStreamListElement on non-collection
-             if (xmlList != null)
-             {
-                 if (!IsCollection(prop.Type))
-                 {
-                     context.ReportDiagnostic(Diagnostic.Create(Diagnostics.XmlListElementOnNonCollection, prop.Locations[0], prop.Name));
-                 }
-             }
+            // XSG004: XmlStreamListElement on non-collection
+            if (xmlList != null)
+            {
+                if (!IsCollection(prop.Type))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(Diagnostics.XmlListElementOnNonCollection, prop.Locations[0], prop.Name));
+                }
+            }
 
-             // XSG005: Duplicate names
-             string xmlName = prop.Name;
-             if (xmlAttribute != null)
-             {
-                 if (xmlAttribute.ConstructorArguments.Length > 0)
-                     xmlName = (string)xmlAttribute.ConstructorArguments[0].Value;
-                 else
-                 {
-                     var arg = xmlAttribute.NamedArguments.FirstOrDefault(a => a.Key == "AttributeName");
-                     if (!arg.Value.IsNull) xmlName = (string)arg.Value.Value;
-                 }
-             }
-             else if (xmlElement != null)
-             {
-                 if (xmlElement.ConstructorArguments.Length > 0)
-                 {
-                     if (xmlElement.ConstructorArguments[0].Value is string s) xmlName = s;
-                 }
-                 else
-                 {
-                     var arg = xmlElement.NamedArguments.FirstOrDefault(a => a.Key == "ElementName");
-                     if (!arg.Value.IsNull) xmlName = (string)arg.Value.Value;
-                 }
-             }
+            // XSG005: Duplicate names
+            string xmlName = prop.Name;
+            if (xmlAttribute != null)
+            {
+                if (xmlAttribute.ConstructorArguments.Length > 0)
+                    xmlName = (string)xmlAttribute.ConstructorArguments[0].Value!;
+                else
+                {
+                    var arg = xmlAttribute.NamedArguments.FirstOrDefault(a => a.Key == "AttributeName");
+                    if (!arg.Value.IsNull) xmlName = (string)arg.Value.Value!;
+                }
+            }
+            else if (xmlElement != null)
+            {
+                if (xmlElement.ConstructorArguments.Length > 0)
+                {
+                    if (xmlElement.ConstructorArguments[0].Value is string s) xmlName = s;
+                }
+                else
+                {
+                    var arg = xmlElement.NamedArguments.FirstOrDefault(a => a.Key == "ElementName");
+                    if (!arg.Value.IsNull) xmlName = (string)arg.Value.Value!;
+                }
+            }
 
-             // Scope duplicate check to elements vs attributes? 
-             // XML allows strict differentiation, but mixing might be confusing. 
-             // Ideally we should track Elements and Attributes separately.
-             // For simplicity, let's track separately if needed.
-             // But actually, XmlSourceGenerator treats them somewhat distinctly?
-             // If I have <Prop> and <Other Prop>, they collide if names collide.
-             // Let's assume unique names within the class scope (Elements and Attributes).
-             // Actually, Attributes are on the element, Elements are children.
-             // <Root attr="1"><attr>1</attr></Root> is valid XML.
-             // So we should track them separately.
-             // Implementation detail: Skip XSG005 implementation details for now to focus on XSG006.
+            // Scope duplicate check to elements vs attributes?
+            // XML allows strict differentiation, but mixing might be confusing.
+            // Ideally we should track Elements and Attributes separately.
+            // For simplicity, let's track separately if needed.
+            // But actually, XmlSourceGenerator treats them somewhat distinctly?
+            // If I have <Prop> and <Other Prop>, they collide if names collide.
+            // Let's assume unique names within the class scope (Elements and Attributes).
+            // Actually, Attributes are on the element, Elements are children.
+            // <Root attr="1"><attr>1</attr></Root> is valid XML.
+            // So we should track them separately.
+            // Implementation detail: Skip XSG005 implementation details for now to focus on XSG006.
 
-             // XSG006: Reflection Fallback Warning
-             // Check if Property Type is Complex AND NOT [XmlAutoGenerated] AND NOT IXmlStreamable
-             if (!IsSimpleType(prop.Type) && !IsCollection(prop.Type)) // Check single complex object
-             {
-                 CheckAndReportFallback(context, prop, prop.Type);
-             }
-             else if (IsCollection(prop.Type))
-             {
-                 // Unwrap collection
-                 if (prop.Type is INamedTypeSymbol nts && nts.IsGenericType)
-                 {
-                     var elementType = nts.TypeArguments[0];
-                     if (!IsSimpleType(elementType))
-                     {
-                          CheckAndReportFallback(context, prop, elementType);
-                     }
-                 }
-                 else if (prop.Type is IArrayTypeSymbol array)
-                 {
-                     if (!IsSimpleType(array.ElementType))
-                     {
-                          CheckAndReportFallback(context, prop, array.ElementType);
-                     }
-                 }
-             }
+            // XSG006: Reflection Fallback Warning
+            // Check if Property Type is Complex AND NOT [XmlAutoGenerated] AND NOT IXmlStreamable
+            if (!IsSimpleType(prop.Type) && !IsCollection(prop.Type)) // Check single complex object
+            {
+                CheckAndReportFallback(context, prop, prop.Type);
+            }
+            else if (IsCollection(prop.Type))
+            {
+                // Unwrap collection
+                if (prop.Type is INamedTypeSymbol nts && nts.IsGenericType)
+                {
+                    var elementType = nts.TypeArguments[0];
+                    if (!IsSimpleType(elementType))
+                    {
+                        CheckAndReportFallback(context, prop, elementType);
+                    }
+                }
+                else if (prop.Type is IArrayTypeSymbol array)
+                {
+                    if (!IsSimpleType(array.ElementType))
+                    {
+                        CheckAndReportFallback(context, prop, array.ElementType);
+                    }
+                }
+            }
         }
 
         private void CheckAndReportFallback(SymbolAnalysisContext context, IPropertySymbol prop, ITypeSymbol typeToCheck)
         {
-             if (typeToCheck.TypeKind == TypeKind.Enum) return;
+            if (typeToCheck.TypeKind == TypeKind.Enum) return;
 
-             // XElement
-             if (IsXElement(typeToCheck)) return;
+            // XElement
+            if (IsXElement(typeToCheck)) return;
 
-             // Check if it has [XmlAutoGenerated]
-             if (HasXmlAutoGeneratedAttribute(typeToCheck)) return;
+            // XAttribute
+            if (IsXAttribute(typeToCheck)) return;
 
-             // Check if it implements IXmlStreamable
-             if (ImplementsIXmlStreamable(typeToCheck)) return;
+            // Check if it has [XmlAutoGenerated]
+            if (HasXmlAutoGeneratedAttribute(typeToCheck)) return;
 
-             // Report Warning
-             context.ReportDiagnostic(Diagnostic.Create(Diagnostics.ReflectionFallbackWarning, prop.Locations[0], prop.Name, typeToCheck.Name));
+            // Check if it implements IXmlStreamable
+            if (ImplementsIXmlStreamable(typeToCheck)) return;
+
+            // Report Warning
+            context.ReportDiagnostic(Diagnostic.Create(Diagnostics.ReflectionFallbackWarning, prop.Locations[0], prop.Name, typeToCheck.Name));
         }
 
         private bool IsSimpleType(ITypeSymbol type)
@@ -201,14 +203,14 @@ namespace XmlSourceGenerator.Analyzers
 
         private bool IsCollection(ITypeSymbol type)
         {
-             if (type.TypeKind == TypeKind.Array) return true;
-             if (type is INamedTypeSymbol nts && nts.IsGenericType)
-             {
-                 // List<T>, IList<T>, IEnumerable<T>
-                 // Simplified check
-                 return nts.AllInterfaces.Any(i => i.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T);
-             }
-             return false;
+            if (type.TypeKind == TypeKind.Array) return true;
+            if (type is INamedTypeSymbol nts && nts.IsGenericType)
+            {
+                // List<T>, IList<T>, IEnumerable<T>
+                // Simplified check
+                return nts.AllInterfaces.Any(i => i.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T);
+            }
+            return false;
         }
 
         private bool HasXmlAutoGeneratedAttribute(ISymbol symbol)
@@ -224,6 +226,11 @@ namespace XmlSourceGenerator.Analyzers
         private bool IsXElement(ITypeSymbol type)
         {
             return type.ToDisplayString() == "System.Xml.Linq.XElement";
+        }
+
+        private bool IsXAttribute(ITypeSymbol type)
+        {
+            return type.ToDisplayString() == "System.Xml.Linq.XAttribute";
         }
     }
 }

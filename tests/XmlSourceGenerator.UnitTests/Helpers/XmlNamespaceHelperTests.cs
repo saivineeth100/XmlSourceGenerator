@@ -1,6 +1,3 @@
-using FluentAssertions;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using XmlSourceGenerator.Abstractions;
 using XmlSourceGenerator.Helpers;
 
@@ -11,7 +8,7 @@ public class XmlNamespaceHelperTests
     private static Compilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
-        
+
         var coreAssemblies = AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
             .Select(a => MetadataReference.CreateFromFile(a.Location))
@@ -52,7 +49,7 @@ public class XmlNamespaceHelperTests
         // Arrange
         var source = @"
             using System.Xml.Serialization;
-            
+
             namespace Test
             {
                 [XmlRoot(Namespace = ""http://example.com"")]
@@ -66,7 +63,7 @@ public class XmlNamespaceHelperTests
         var ns = XmlNamespaceHelper.GetNamespace(typeSymbol!);
 
         // Assert
-        ns.Should().Be("http://example.com");
+        ns.Should().Be("http://example.com"); // DevSkim: ignore DS137138
     }
 
     [Fact]
@@ -75,7 +72,7 @@ public class XmlNamespaceHelperTests
         // Arrange
         var source = @"
             using System.Xml.Serialization;
-            
+
             namespace Test
             {
                 [XmlType(""CustomType"", Namespace = ""http://type.example.com"")]
@@ -87,7 +84,7 @@ public class XmlNamespaceHelperTests
         var ns = XmlNamespaceHelper.GetNamespace(typeSymbol!);
 
         // Assert
-        ns.Should().Be("http://type.example.com");
+        ns.Should().Be("http://type.example.com"); // DevSkim: ignore DS137138
     }
 
     [Fact]
@@ -96,7 +93,7 @@ public class XmlNamespaceHelperTests
         // Arrange
         var source = @"
             using System.Xml.Serialization;
-            
+
             namespace Test
             {
                 public class Container
@@ -114,7 +111,7 @@ public class XmlNamespaceHelperTests
         var ns = XmlNamespaceHelper.GetNamespace(property!);
 
         // Assert
-        ns.Should().Be("http://element.example.com");
+        ns.Should().Be("http://element.example.com"); // DevSkim: ignore DS137138
     }
 
     [Fact]
@@ -123,7 +120,7 @@ public class XmlNamespaceHelperTests
         // Arrange
         var source = @"
             using System.Xml.Serialization;
-            
+
             namespace Test
             {
                 public class Container
@@ -141,7 +138,7 @@ public class XmlNamespaceHelperTests
         var ns = XmlNamespaceHelper.GetNamespace(property!);
 
         // Assert
-        ns.Should().Be("http://attr.example.com");
+        ns.Should().Be("http://attr.example.com"); // DevSkim: ignore DS137138
     }
 
     [Fact]
@@ -150,7 +147,7 @@ public class XmlNamespaceHelperTests
         // Arrange
         var source = @"
             using System.Xml.Serialization;
-            
+
             namespace Test
             {
                 public class Container
@@ -168,6 +165,6 @@ public class XmlNamespaceHelperTests
         var ns = XmlNamespaceHelper.GetNamespace(property!);
 
         // Assert
-        ns.Should().Be("http://array.example.com");
+        ns.Should().Be("http://array.example.com"); // DevSkim: ignore DS137138
     }
 }

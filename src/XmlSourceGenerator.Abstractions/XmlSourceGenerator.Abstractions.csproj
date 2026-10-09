@@ -1,15 +1,32 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <!-- Multiple net4 targets because later runtimes include more assemblies and have different method overloads. -->
+    <TargetFrameworks>netstandard2.0;net462;net47;net48;net5.0;net6.0;net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
     <PackageId>XmlSourceGenerator.Abstractions</PackageId>
     <Description>Runtime abstractions for XmlSourceGenerator - attributes, interfaces, and utilities for XML serialization</Description>
     <PackageTags>$(PackageTags);attributes;runtime</PackageTags>
+    <!-- Can these polyfills cause type confusion during runtime? Will they implicit cast to another copy of the type? -->
+    <MeziantouPolyfill_IncludedPolyfills>
+      T:System.Runtime.CompilerServices.IsExternalInit|
+      T:System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute|
+      T:System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute|
+      T:System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes
+    </MeziantouPolyfill_IncludedPolyfills>
+    <MeziantouPolyfill_IncludedPolyfills>$([System.Text.RegularExpressions.Regex]::Replace($(MeziantouPolyfill_IncludedPolyfills), "\n", ""))</MeziantouPolyfill_IncludedPolyfills>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="XmlSourceGenerator" />
     <InternalsVisibleTo Include="XmlSourceGenerator.Tests" />
+
+    <PackageReference Include="Meziantou.Polyfill">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Condition="$(NeedsSystemTextJsonPackage) == 'true'" Include="System.Text.Json" />
+    <PackageReference Condition="'$(TargetFramework)' == net462" Include="System.ValueTuple" />
   </ItemGroup>
 
 </Project>

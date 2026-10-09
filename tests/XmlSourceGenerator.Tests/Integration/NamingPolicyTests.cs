@@ -1,6 +1,3 @@
-using System;
-using Xunit;
-using XmlSourceGenerator.Abstractions;
 using XmlSourceGenerator.Abstractions;
 
 namespace XmlSourceGenerator.Tests.Integration

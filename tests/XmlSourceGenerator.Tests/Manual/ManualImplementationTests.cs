@@ -1,8 +1,3 @@
-using System.IO;
-using System.Linq;
-using System.Xml.Linq;
-using Xunit;
-using XmlSourceGenerator.Abstractions;
 using XmlSourceGenerator.Abstractions;
 
 namespace XmlSourceGenerator.Tests.Integration
@@ -14,25 +9,25 @@ namespace XmlSourceGenerator.Tests.Integration
     public class ManualUser : IXmlStreamable
     {
         public int UserId { get; set; }
-        public string Username { get; set; }
+        public string? Username { get; set; }
 
         public string DefaultXmlRootElementName => "ManualUser";
 
-        public void ReadFromXml(XElement element, XmlSerializationOptions options = null)
+        public void ReadFromXml(XElement element, XmlSerializationOptions? options = null)
         {
-            var userIdName = options?.GetXmlName(typeof(ManualUser), "UserId") ?? "UserId";
-            var usernameName = options?.GetXmlName(typeof(ManualUser), "Username") ?? "Username";
+            var userIdName = options?.GetXmlName(new(typeof(ManualUser), nameof(UserId))) ?? nameof(UserId);
+            var usernameName = options?.GetXmlName(new(typeof(ManualUser), nameof(Username))) ?? nameof(Username);
 
-            UserId = (int)element.Element(userIdName);
-            Username = (string)element.Element(usernameName);
+            UserId = (int)(element.Element(userIdName) ?? throw new NullReferenceException($"XML Element with name \"{userIdName}\" cannot be found!"));
+            Username = (string)(element.Element(usernameName) ?? throw new NullReferenceException($"XML Element with name \"{Username}\" cannot be found!"));
         }
 
-        public XElement WriteToXml(XmlSerializationOptions options = null)
+        public XElement WriteToXml(XmlSerializationOptions? options = null)
         {
-            var userIdName = options?.GetXmlName(typeof(ManualUser), "UserId") ?? "UserId";
-            var usernameName = options?.GetXmlName(typeof(ManualUser), "Username") ?? "Username";
+            var userIdName = options?.GetXmlName(new(typeof(ManualUser), nameof(UserId))) ?? nameof(UserId);
+            var usernameName = options?.GetXmlName(new(typeof(ManualUser), nameof(Username))) ?? nameof(Username);
 
-            return new XElement("ManualUser",
+            return new XElement(nameof(ManualUser),
                 new XElement(userIdName, UserId),
                 new XElement(usernameName, Username));
         }
@@ -57,11 +52,15 @@ namespace XmlSourceGenerator.Tests.Integration
         public void TestManualImplementation_WithOptions()
         {
             var options = new XmlSerializationOptions();
-            options.PropertyOverrides[(typeof(ManualUser), "Username")] = "UserName";
+            options.PropertyOverrides[new(typeof(ManualUser), "Username")] = "UserName";
 
-            var xml = new XElement("ManualUser",
-                new XElement("UserId", 100),
-                new XElement("UserName", "testuser"));
+            var xml = new XElement(nameof(ManualUser),
+                new XElement(nameof(ManualUser.UserId), 100),
+                new XElement(
+                    options.GetXmlName(typeof(ManualUser), nameof(ManualUser.Username)) ?? nameof(ManualUser.Username),
+                    "testuser"
+                )
+            );
 
             var user = new ManualUser();
             user.ReadFromXml(xml, options);
@@ -71,17 +70,17 @@ namespace XmlSourceGenerator.Tests.Integration
         }
 
         [Fact]
-        public void TestManualImplementation_WithStreamer()
+        public async Task TestManualImplementation_WithStreamerAsync()
         {
-            var users = new[] 
-            { 
+            var users = new[]
+            {
                 new ManualUser { UserId = 1, Username = "user1" },
                 new ManualUser { UserId = 2, Username = "user2" }
             };
-           
-            using var stream = new MemoryStream();
-            GenericXmlStreamer.WriteDataToStreamAsync(stream, users).Wait();
-            // Test Writtten XML
+
+            await using var stream = new MemoryStream();
+            await GenericXmlStreamer.WriteEnumerableDataToStreamAsync(stream, users);
+            // Test Written XML
             string xml = System.Text.Encoding.UTF8.GetString(stream.ToArray());
             Assert.Contains("﻿<?xml version=\"1.0\" encoding=\"utf-8\"?><ArrayOfItems><ManualUser><UserId>1</UserId><Username>user1</Username></ManualUser><ManualUser><UserId>2</UserId><Username>user2</Username></ManualUser></ArrayOfItems>", xml);
             stream.Position = 0;

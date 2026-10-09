@@ -2,8 +2,10 @@ import re
 import os
 
 def update_snapshots():
-    error_file = r"d:\SourceCode\AccountingCompanion\XmlSourceGenerator\test_errors_3.txt"
-    test_file = r"d:\SourceCode\AccountingCompanion\XmlSourceGenerator\tests\XmlSourceGenerator.UnitTests\SourceGeneration\SnapshotTests.cs"
+    sep = os.path.sep
+    this_file_directory = os.path.dirname(os.path.realpath(__file__))
+    error_file = f"{this_file_directory}{sep}test_errors_3.txt"
+    test_file = f"{this_file_directory}{sep}tests{sep}XmlSourceGenerator.UnitTests{sep}SourceGeneration{sep}SnapshotTests.cs"
 
     if not os.path.exists(error_file):
         print(f"Error file not found: {error_file}")
@@ -74,7 +76,7 @@ def update_snapshots():
         # Regex for test file replacement
         # We want to replace the content inside var expectedCode = @"...";
         
-        pattern = re.compile(f'public void {method_name}\(\).*?var expectedCode = @"(.*?)"', re.DOTALL)
+        pattern = re.compile(f'public void {method_name}\\(\\).*?var expectedCode = @"(.*?)"', re.DOTALL)
         
         # Check if method exists in file
         if method_name not in test_content:

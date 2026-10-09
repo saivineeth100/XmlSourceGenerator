@@ -1,5 +1,3 @@
-using Microsoft.CodeAnalysis;
-using XmlSourceGenerator.Helpers;
 using XmlSourceGenerator.Models;
 
 namespace XmlSourceGenerator.Generators
@@ -20,7 +18,7 @@ namespace XmlSourceGenerator.Generators
         {
             var itemTypeModel = info.ItemTypeInfo!;
             string itemTypeName = itemTypeModel.FullName;
-            
+
             string containerName = info.ArrayElementName ?? info.Name;
             bool isWrapped = info.ArrayElementName != null;
             string itemXmlName = info.ArrayItemElementName ?? info.XmlElementName ?? itemTypeModel.Name;
@@ -35,7 +33,7 @@ namespace XmlSourceGenerator.Generators
                     _sb.AppendLine($"var container_{info.Name} = element.Element(XNamespace.Get(\"{ns}\") + \"{containerName}\");");
                 else
                     _sb.AppendLine($"var container_{info.Name} = element.Element(\"{containerName}\");");
-                
+
                 _sb.AppendLine($"if (container_{info.Name} != null)");
                 _sb.AppendLine("{");
                 using (_sb.Indent())
@@ -48,6 +46,11 @@ namespace XmlSourceGenerator.Generators
             {
                 if (info.XmlElementName != null || info.IsFlattened)
                 {
+                    _sb.AppendLine("// info.XmlElementName != null || info.IsFlattened");
+                    _sb.AppendLine($"// info.IsFlattened == {info.IsFlattened}");
+                    _sb.AppendLine($"// info.TypeInfo.Kind == {info.TypeInfo.Kind}");
+                    _sb.AppendLine($"// info.XmlElementName == {info.XmlElementName}");
+
                     // Explicit or Implicit Flattening: Read directly from element
                     // If IsFlattened and not named, we might need to filter by Type Name or Polymorphic names
                     // If Polymorphic, GenerateCollectionLoop handles names internally.
@@ -58,6 +61,8 @@ namespace XmlSourceGenerator.Generators
                 else
                 {
                     // Implicit container
+                    _sb.AppendLine("// Implicit container element");
+                    _sb.AppendLine($"// info.TypeInfo.Kind == {info.TypeInfo.Kind}");
                     if (ns != null)
                         _sb.AppendLine($"var container_{info.Name} = element.Element(XNamespace.Get(\"{ns}\") + \"{info.Name}\");");
                     else
@@ -67,7 +72,7 @@ namespace XmlSourceGenerator.Generators
                     _sb.AppendLine("{");
                     using (_sb.Indent())
                     {
-                        GenerateCollectionLoop(info, itemTypeModel, null, $"container_{info.Name}", ns);  
+                        GenerateCollectionLoop(info, itemTypeModel, null, $"container_{info.Name}", ns);
                     }
                     _sb.AppendLine("}");
                 }
@@ -109,7 +114,7 @@ namespace XmlSourceGenerator.Generators
 
                     string itemTypeName = itemTypeModel.FullName;
                     bool isItemPrimitive = itemTypeModel.Kind == PropertyKind.Primitive;
-                    
+
                     _sb.AppendLine($"if ({info.Name} == null) {info.Name} = new();");
                     if (isItemPrimitive)
                     {
@@ -131,8 +136,9 @@ namespace XmlSourceGenerator.Generators
 
         public void GenerateCollectionWrite(GeneratorPropertyModel info)
         {
-            var itemTypeModel = info.ItemTypeInfo;
-            
+            var itemTypeModel = info.ItemTypeInfo
+                ?? throw new ArgumentException($"{nameof(GeneratorPropertyModel)} must have {nameof(GeneratorPropertyModel.ItemTypeInfo)!}");
+
             bool isWrapped = info.ArrayElementName != null;
             string containerName = info.ArrayElementName ?? info.Name;
             string? itemXmlName = info.ArrayItemElementName ?? info.XmlElementName;
@@ -161,17 +167,17 @@ namespace XmlSourceGenerator.Generators
                 }
                 else if (info.XmlElementName == null && !info.IsFlattened) // Implicit container
                 {
-                     if (ns != null)
-                     {
+                    if (ns != null)
+                    {
                         _sb.AppendLine($"XNamespace ns_{info.Name} = \"{ns}\";");
                         _sb.AppendLine($"var container = new XElement(ns_{info.Name} + \"{info.Name}\");");
-                     }
-                     else
-                     {
+                    }
+                    else
+                    {
                         _sb.AppendLine($"var container = new XElement(\"{info.Name}\");");
-                     }
-                     _sb.AppendLine("element.Add(container);");
-                     parentVar = "container";
+                    }
+                    _sb.AppendLine("element.Add(container);");
+                    parentVar = "container";
                 }
 
                 _sb.AppendLine($"foreach (var item in {info.Name})");
@@ -180,10 +186,10 @@ namespace XmlSourceGenerator.Generators
                 {
                     if (itemTypeModel.Kind == PropertyKind.Primitive)
                     {
-                         if (ns != null && isWrapped) 
-                             _sb.AppendLine($"{parentVar}.Add(new XElement(ns_{info.Name} + \"{fallbackItemName}\", item));");
-                         else
-                             _sb.AppendLine($"{parentVar}.Add(new XElement(\"{fallbackItemName}\", item));");
+                        if (ns != null && isWrapped)
+                            _sb.AppendLine($"{parentVar}.Add(new XElement(ns_{info.Name} + \"{fallbackItemName}\", item));");
+                        else
+                            _sb.AppendLine($"{parentVar}.Add(new XElement(\"{fallbackItemName}\", item));");
                     }
                     else
                     {

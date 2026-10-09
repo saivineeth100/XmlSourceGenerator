@@ -1,6 +1,3 @@
-using FluentAssertions;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using XmlSourceGenerator.Abstractions;
 using XmlSourceGenerator.Helpers;
 
@@ -11,7 +8,7 @@ public class EnumHelperTests
     private static Compilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
-        
+
         // Get all assemblies including XmlSourceGenerator.Abstractions
         var coreAssemblies = AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
@@ -59,7 +56,7 @@ public class EnumHelperTests
         // Arrange
         var source = @"
             using XmlSourceGenerator.Abstractions;
-            
+
             namespace Test
             {
                 public enum Priority
@@ -90,7 +87,7 @@ public class EnumHelperTests
         // Arrange
         var source = @"
             using XmlSourceGenerator.Abstractions;
-            
+
             namespace Test
             {
                 public enum Priority

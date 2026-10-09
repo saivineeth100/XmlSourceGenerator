@@ -1,7 +1,3 @@
-using System;
-using Xunit;
-using XmlSourceGenerator;
-
 namespace XmlSourceGenerator.Tests.Unit
 {
     public class IndentedStringBuilderTests
@@ -48,7 +44,7 @@ namespace XmlSourceGenerator.Tests.Unit
         public void Indent_WithUsingBlock_AutoDecrements()
         {
             var sb = new IndentedStringBuilder();
-            
+
             using (sb.Indent())
             {
                 sb.AppendLine("Indented");
@@ -93,7 +89,7 @@ namespace XmlSourceGenerator.Tests.Unit
         public void MultipleIndentLevels_NestedCorrectly()
         {
             var sb = new IndentedStringBuilder();
-            
+
             sb.AppendLine("Level 0");
             using (sb.Indent())
             {

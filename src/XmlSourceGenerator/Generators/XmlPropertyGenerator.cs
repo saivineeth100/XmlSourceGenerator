@@ -1,5 +1,4 @@
 using Microsoft.CodeAnalysis;
-using XmlSourceGenerator.Helpers;
 using XmlSourceGenerator.Models;
 
 namespace XmlSourceGenerator.Generators
@@ -66,13 +65,13 @@ namespace XmlSourceGenerator.Generators
                     using (_sb.Indent())
                     {
                         _sb.AppendLine($"var override_{propName} = options.GetOverride(typeof({className}), \"{propName}\");");
-                        _sb.AppendLine($"if (!string.IsNullOrEmpty(override_{propName})) {xmlNameVar} = override_{propName};");
+                        _sb.AppendLine($"if (!string.IsNullOrEmpty(override_{propName})) {xmlNameVar} = override_{propName}!;");
                     }
                     _sb.AppendLine("}");
                 }
                 else
                 {
-                    _sb.AppendLine($"var {xmlNameVar} = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_{propName}) ?? XmlTypeInfo.DefaultXmlName_{propName};");
+                    _sb.AppendLine($"var {xmlNameVar} = options?.GetXmlName(new PolymorphicMapping(XmlTypeInfo.Type, XmlTypeInfo.PropName_{propName})) ?? XmlTypeInfo.DefaultXmlName_{propName};");
                 }
 
                 if (ns != null)
@@ -109,15 +108,24 @@ namespace XmlSourceGenerator.Generators
                             _sb.AppendLine("{");
                             using (_sb.Indent())
                             {
+#if DEBUG
+                                if (info.IsPolymorphic)
+                                    _sb.AppendLine("// IsPolymorphic");
+                                else
+                                    _sb.AppendLine($"// !IsPolymorphic; That can't be right! {info.PolymorphicMappings.Count} mappings!");
+#endif
                                 // Instantiate type dynamically
-                                _sb.AppendLine($"{propName} = ({typeName})Activator.CreateInstance(mapping.Type);");
+                                if (info.TypeInfo.IsNullableAnnotated || info.TypeInfo.Name == nameof(Nullable))
+                                    _sb.AppendLine($"{propName} = ({typeName}?)Activator.CreateInstance(mapping.Type);");
+                                else
+                                    _sb.AppendLine($"{propName} = ({typeName})Activator.CreateInstance(mapping.Type)!;");
                                 _sb.AppendLine($"if ({propName} is IXmlStreamable streamable_{propName})");
                                 _sb.AppendLine("{");
                                 _sb.AppendLine($"    streamable_{propName}.ReadFromXml(polyElem_{propName}, options);");
                                 _sb.AppendLine("}");
                                 _sb.AppendLine("else");
                                 _sb.AppendLine("{");
-                                _sb.AppendLine($"    ReflectionHelper.Populate({propName}, polyElem_{propName}, options);"); 
+                                _sb.AppendLine($"    ReflectionHelper.Populate({propName}, polyElem_{propName}, options);");
                                 _sb.AppendLine("}");
                                 _sb.AppendLine("break;");
                             }
@@ -150,13 +158,13 @@ namespace XmlSourceGenerator.Generators
                 }
                 else if (info.TypeInfo.Kind == PropertyKind.XElement)
                 {
-                     _sb.AppendLine($"if (elem_{propName} != null)");
-                     _sb.AppendLine("{");
-                     using (_sb.Indent())
-                     {
-                         _sb.AppendLine($"{propName} = elem_{propName};");
-                     }
-                     _sb.AppendLine("}");
+                    _sb.AppendLine($"if (elem_{propName} != null)");
+                    _sb.AppendLine("{");
+                    using (_sb.Indent())
+                    {
+                        _sb.AppendLine($"{propName} = elem_{propName};");
+                    }
+                    _sb.AppendLine("}");
                 }
                 else
                 {
@@ -219,13 +227,13 @@ namespace XmlSourceGenerator.Generators
                     using (_sb.Indent())
                     {
                         _sb.AppendLine($"var override_{propName} = options.GetOverride(typeof({className}), \"{propName}\");");
-                        _sb.AppendLine($"if (!string.IsNullOrEmpty(override_{propName})) {xmlNameVar} = override_{propName};");
+                        _sb.AppendLine($"if (!string.IsNullOrEmpty(override_{propName})) {xmlNameVar} = override_{propName}!;");
                     }
                     _sb.AppendLine("}");
                 }
                 else
                 {
-                    _sb.AppendLine($"var {xmlNameVar} = options?.GetXmlName(XmlTypeInfo.Type, XmlTypeInfo.PropName_{propName}) ?? XmlTypeInfo.DefaultXmlName_{propName};");
+                    _sb.AppendLine($"var {xmlNameVar} = options?.GetXmlName(new PolymorphicMapping(XmlTypeInfo.Type, XmlTypeInfo.PropName_{propName})) ?? XmlTypeInfo.DefaultXmlName_{propName};");
                 }
 
                 string elementCreation;
@@ -265,7 +273,7 @@ namespace XmlSourceGenerator.Generators
                                 {
                                     _sb.AppendLine($"var nilElement = new XElement({xmlNameVar});");
                                 }
-                                _sb.AppendLine("nilElement.Add(new XAttribute(XNamespace.Get(\"http://www.w3.org/2001/XMLSchema-instance\") + \"nil\", \"true\"));");
+                                _sb.AppendLine("nilElement.Add(new XAttribute(XNamespace.Get(\"http://www.w3.org/2001/XMLSchema-instance\") + \"nil\", \"true\"));"); // DevSkim: ignore DS137138
                                 _sb.AppendLine("element.Add(nilElement);");
                             }
                             _sb.AppendLine("}");
@@ -279,21 +287,21 @@ namespace XmlSourceGenerator.Generators
                     // Generate switch for enum write
                     // If nullable, we need to handle value access
                     string valAccess = isReferenceOrNullable ? $"{propName}.Value" : propName;
-                    
+
                     // Note: If nullable, we only reach here if propName != null (checked above if we wrap it similarly? Wait, enum logic below didn't have null check wrapper yet for value access in switch?)
                     // The standard block above handles Primitive/DateTime null checks. Enum was separate.
                     // We need to wrap Enum in null check if nullable.
-                    
+
                     if (isReferenceOrNullable)
                     {
-                         _sb.AppendLine($"if ({propName} != null)");
-                         _sb.AppendLine("{");
+                        _sb.AppendLine($"if ({propName} != null)");
+                        _sb.AppendLine("{");
                     }
 
                     using (isReferenceOrNullable ? _sb.Indent() : null)
                     {
                         _sb.AppendLine($"string enumValue_{propName} = {valAccess}.ToString();");
-    
+
                         var enumMap = info.TypeInfo.EnumMapping;
                         if (enumMap.Any(kvp => kvp.Key != kvp.Value))
                         {
@@ -308,14 +316,14 @@ namespace XmlSourceGenerator.Generators
                             }
                             _sb.AppendLine("}");
                         }
-    
+
                         string enumElementCreation = ns != null
                             ? $"new XElement(ns_{propName} + {xmlNameVar}, enumValue_{propName})"
                             : $"new XElement({xmlNameVar}, enumValue_{propName})";
-    
+
                         _sb.AppendLine($"element.Add({enumElementCreation});");
                     }
-                    
+
                     if (isReferenceOrNullable)
                     {
                         _sb.AppendLine("}");
@@ -334,14 +342,14 @@ namespace XmlSourceGenerator.Generators
                                 {
                                     _sb.AppendLine($"var nilElement = new XElement({xmlNameVar});");
                                 }
-                                _sb.AppendLine("nilElement.Add(new XAttribute(XNamespace.Get(\"http://www.w3.org/2001/XMLSchema-instance\") + \"nil\", \"true\"));");
+                                _sb.AppendLine("nilElement.Add(new XAttribute(XNamespace.Get(\"http://www.w3.org/2001/XMLSchema-instance\") + \"nil\", \"true\"));"); // DevSkim: ignore DS137138
                                 _sb.AppendLine("element.Add(nilElement);");
                             }
                             _sb.AppendLine("}");
                         }
                     }
                 }
-                
+
                 else if (info.TypeInfo.Kind == PropertyKind.XElement)
                 {
                     _sb.AppendLine($"if ({propName} != null)");
@@ -350,16 +358,16 @@ namespace XmlSourceGenerator.Generators
                     {
                         if (ns != null)
                         {
-                             _sb.AppendLine($"{propName}.Name = XNamespace.Get(\"{ns}\") + {xmlNameVar};");
-                             _sb.AppendLine($"element.Add({propName});");
+                            _sb.AppendLine($"{propName}.Name = XNamespace.Get(\"{ns}\") + {xmlNameVar};");
+                            _sb.AppendLine($"element.Add({propName});");
                         }
                         else
                         {
-                             _sb.AppendLine($"{propName}.Name = {xmlNameVar};");
-                             _sb.AppendLine($"element.Add({propName});");
+                            _sb.AppendLine($"{propName}.Name = {xmlNameVar};");
+                            _sb.AppendLine($"element.Add({propName});");
                         }
                     }
-                     _sb.AppendLine("}");
+                    _sb.AppendLine("}");
                 }
                 else
                 {
@@ -419,7 +427,7 @@ namespace XmlSourceGenerator.Generators
                             _sb.AppendLine("}");
                         }
                         _sb.AppendLine("}");
-                        
+
                         // Check for compile-time polymorphic mappings (from [XmlInclude] on property type)
                         if (info.IsPolymorphic && info.PolymorphicMappings.Count > 0)
                         {
@@ -519,7 +527,7 @@ namespace XmlSourceGenerator.Generators
                 _sb.AppendLine($"var child_{propName} = ReflectionHelper.Serialize({propName}, options, {xmlNameVar});");
                 if (ns != null)
                 {
-                     _sb.AppendLine($"if (child_{propName} != null) child_{propName}.Name = ns_{propName} + {xmlNameVar};");
+                    _sb.AppendLine($"if (child_{propName} != null) child_{propName}.Name = ns_{propName} + {xmlNameVar};");
                 }
                 _sb.AppendLine($"if (child_{propName} != null) element.Add(child_{propName});");
             }
@@ -529,16 +537,26 @@ namespace XmlSourceGenerator.Generators
         {
             string propName = info.Name;
             string typeName = info.TypeName;
-           // _sb.AppendLine($"//{propName} = {info.PropertyKind};");
+            // _sb.AppendLine($"//{propName} = {info.PropertyKind};");
             if (info.TypeInfo.Kind == PropertyKind.Primitive)
             {
                 if (info.TypeInfo.IsString)
                 {
                     _sb.AppendLine($"{propName} = {sourceVariable}.Value;");
                 }
+                else if (typeName is "byte" or "byte?" or $"{nameof(Nullable)}<byte>")
+                {
+                    /* INT8 needs custom conversion to prevent CS0457 "XElement -> double | decimal -> byte"
+                       nullable makes no difference; sbyte is unaffected.<br/>
+                       Conclusion: Convert to sbyte and then to byte
+                     */
+                    // e.g. "sbyte", "sbyte?", "Nullable<sbyte>"
+                    string intermediate = typeName[0] == 'N' ? "Nullable<sbyte>" : $"s{typeName}";
+                    _sb.AppendLine($"{propName} = ({typeName})({intermediate}){sourceVariable};");
+                }
                 else
                 {
-                    // For nullable primitives, explicit cast (int?)element works if strictly element, 
+                    // For nullable primitives, explicit cast (int?)element works if strictly element,
                     // but sourceVariable might be attribute too. XAttribute explicit cast works too.
                     _sb.AppendLine($"{propName} = ({typeName}){sourceVariable};");
                 }
@@ -549,7 +567,7 @@ namespace XmlSourceGenerator.Generators
                 // Invert map
                 var reverseMap = info.TypeInfo.EnumMapping.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
                 string underlyingTypeName = info.TypeInfo.FullName;
-                
+
                 if (reverseMap.Any(kvp => kvp.Key != kvp.Value))
                 {
                     _sb.AppendLine($"switch ({sourceVariable}.Value)");
